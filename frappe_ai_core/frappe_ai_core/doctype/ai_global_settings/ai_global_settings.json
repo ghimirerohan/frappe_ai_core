@@ -1,0 +1,184 @@
+{
+ "actions": [],
+ "creation": "2026-04-02 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "System",
+ "engine": "InnoDB",
+ "field_order": [
+  "gemini_api_key",
+  "deepgram_api_key",
+  "column_break_keys",
+  "livekit_url",
+  "livekit_internal_url",
+  "livekit_api_key",
+  "livekit_api_secret",
+  "section_break_models",
+  "gemini_model",
+  "judge_model",
+  "section_break_agent",
+  "livekit_agent_name",
+  "section_break_erpnext_mcp",
+  "erpnext_mcp_url",
+  "erpnext_mcp_api_key",
+  "erpnext_mcp_api_secret",
+  "erpnext_mcp_categories",
+  "analytics_agent_name",
+  "section_break_cost",
+  "usd_to_npr_rate"
+ ],
+ "fields": [
+  {
+   "fieldname": "gemini_api_key",
+   "fieldtype": "Password",
+   "label": "Gemini API Key"
+  },
+  {
+   "fieldname": "deepgram_api_key",
+   "fieldtype": "Password",
+   "label": "Deepgram API Key"
+  },
+  {
+   "fieldname": "column_break_keys",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "ws://localhost:7880",
+   "description": "WebSocket URL for browsers on this machine (e.g. ws://localhost:7880). When users open the site via a LAN IP (192.168.x.x), the API rewrites this to ws://<that-ip>:7880 automatically. Set LiveKit URL (server / API) to ws://livekit:7880 in Docker.",
+   "fieldname": "livekit_url",
+   "fieldtype": "Data",
+   "label": "LiveKit URL (clients)"
+  },
+  {
+   "description": "Optional. URL the Frappe server uses to call LiveKit HTTP API (agent dispatch). In Docker Compose use ws://livekit:7880 when clients use localhost above. Leave empty only if this server can reach the client URL.",
+   "fieldname": "livekit_internal_url",
+   "fieldtype": "Data",
+   "label": "LiveKit URL (server / API)"
+  },
+  {
+   "default": "devkey",
+   "fieldname": "livekit_api_key",
+   "fieldtype": "Data",
+   "label": "LiveKit API Key"
+  },
+  {
+   "fieldname": "livekit_api_secret",
+   "fieldtype": "Password",
+   "label": "LiveKit API Secret"
+  },
+  {
+   "fieldname": "section_break_models",
+   "fieldtype": "Section Break",
+   "label": "Models"
+  },
+  {
+   "default": "gemini-2.5-flash-native-audio-preview-12-2025",
+   "description": "Gemini **Live API** voice model id (Google AI). Recommended: gemini-2.5-flash-native-audio-preview-12-2025 (matches livekit-plugins-google). Optional: gemini-3.1-flash-live-preview if your API key accepts it. Do not use **Flash-Lite** here (text only; use Judge Model). Wrong ids fall back to the default.",
+   "fieldname": "gemini_model",
+   "fieldtype": "Data",
+   "label": "Gemini Live Model"
+  },
+  {
+   "default": "gemini-3.1-flash-lite-preview",
+   "description": "Gemini model id for **post-call** scoring (text `generate_content`, not Live voice). Must match a model your API key can use (e.g. gemini-3.1-flash-lite-preview, gemini-2.5-flash).",
+   "fieldname": "judge_model",
+   "fieldtype": "Data",
+   "label": "Judge Model"
+  },
+  {
+   "fieldname": "section_break_agent",
+   "fieldtype": "Section Break",
+   "label": "Worker"
+  },
+  {
+   "default": "frappe-ai-voice",
+   "description": "Must match the LiveKit agent worker registration name.",
+   "fieldname": "livekit_agent_name",
+   "fieldtype": "Data",
+   "label": "LiveKit Agent Name"
+  },
+  {
+   "fieldname": "section_break_erpnext_mcp",
+   "fieldtype": "Section Break",
+   "label": "ERPNext MCP (Analytics agent)"
+  },
+  {
+   "description": "Base URL of the ERPNext / Frappe site the MCP server calls (e.g. http://localhost:8000 or https://mysite.frappe.cloud).",
+   "fieldname": "erpnext_mcp_url",
+   "fieldtype": "Data",
+   "label": "ERPNext URL (MCP)"
+  },
+  {
+   "description": "API Key from ERPNext User > My Settings > API Access.",
+   "fieldname": "erpnext_mcp_api_key",
+   "fieldtype": "Data",
+   "label": "ERPNext API Key"
+  },
+  {
+   "description": "API Secret from ERPNext User > My Settings > API Access.",
+   "fieldname": "erpnext_mcp_api_secret",
+   "fieldtype": "Password",
+   "label": "ERPNext API Secret"
+  },
+  {
+   "default": "sales,inventory,accounting,analytics",
+   "description": "Comma-separated @casys/mcp-erpnext tool categories (see package docs).",
+   "fieldname": "erpnext_mcp_categories",
+   "fieldtype": "Data",
+   "label": "MCP tool categories"
+  },
+  {
+   "default": "frappe-ai-analytics",
+   "description": "LiveKit worker name for the ERPNext analytics voice agent (must match worker registration).",
+   "fieldname": "analytics_agent_name",
+   "fieldtype": "Data",
+   "label": "Analytics LiveKit agent name"
+  },
+  {
+   "fieldname": "section_break_cost",
+   "fieldtype": "Section Break",
+   "label": "Cost / Tokenomics"
+  },
+  {
+   "default": "141.0",
+   "description": "USD to NPR conversion rate used to show operating cost in local currency.",
+   "fieldname": "usd_to_npr_rate",
+   "fieldtype": "Float",
+   "label": "USD to NPR Rate",
+   "precision": "4"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-04-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe AI Core",
+ "name": "AI Global Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "AI Voice Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

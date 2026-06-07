@@ -1,0 +1,202 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-06-06 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "session",
+  "template",
+  "user",
+  "usage_kind",
+  "column_break_meta",
+  "provider",
+  "model",
+  "captured_at",
+  "pricing_found",
+  "section_break_tokens",
+  "input_text_tokens",
+  "input_audio_tokens",
+  "input_cached_tokens",
+  "column_break_output_tokens",
+  "output_text_tokens",
+  "output_audio_tokens",
+  "total_tokens",
+  "section_break_cost",
+  "cost_usd",
+  "column_break_cost",
+  "cost_npr"
+ ],
+ "fields": [
+  {
+   "fieldname": "session",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Session",
+   "options": "AI Session"
+  },
+  {
+   "fieldname": "template",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Template",
+   "options": "AI Agent Template"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "default": "Live Voice",
+   "fieldname": "usage_kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Usage Kind",
+   "options": "Live Voice\nJudge\nAnalytics"
+  },
+  {
+   "fieldname": "column_break_meta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "provider",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Provider"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Model"
+  },
+  {
+   "fieldname": "captured_at",
+   "fieldtype": "Datetime",
+   "label": "Captured At"
+  },
+  {
+   "default": "0",
+   "description": "Whether a matching AI Model Pricing row was found. If unchecked, cost is 0 (unpriced model).",
+   "fieldname": "pricing_found",
+   "fieldtype": "Check",
+   "label": "Pricing Found"
+  },
+  {
+   "fieldname": "section_break_tokens",
+   "fieldtype": "Section Break",
+   "label": "Tokens"
+  },
+  {
+   "default": "0",
+   "fieldname": "input_text_tokens",
+   "fieldtype": "Int",
+   "label": "Input Text Tokens"
+  },
+  {
+   "default": "0",
+   "fieldname": "input_audio_tokens",
+   "fieldtype": "Int",
+   "label": "Input Audio Tokens"
+  },
+  {
+   "default": "0",
+   "fieldname": "input_cached_tokens",
+   "fieldtype": "Int",
+   "label": "Input Cached Tokens"
+  },
+  {
+   "fieldname": "column_break_output_tokens",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "output_text_tokens",
+   "fieldtype": "Int",
+   "label": "Output Text Tokens"
+  },
+  {
+   "default": "0",
+   "fieldname": "output_audio_tokens",
+   "fieldtype": "Int",
+   "label": "Output Audio Tokens"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_tokens",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total Tokens"
+  },
+  {
+   "fieldname": "section_break_cost",
+   "fieldtype": "Section Break",
+   "label": "Cost"
+  },
+  {
+   "default": "0",
+   "fieldname": "cost_usd",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Cost (USD)",
+   "precision": "6"
+  },
+  {
+   "fieldname": "column_break_cost",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "cost_npr",
+   "fieldtype": "Float",
+   "label": "Cost (NPR)",
+   "precision": "4"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-06 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe AI Core",
+ "name": "AI Usage Record",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "AI Voice Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

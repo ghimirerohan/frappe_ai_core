@@ -1,0 +1,181 @@
+{
+ "charts": [
+  {
+   "chart_name": "AI Daily Cost (USD)",
+   "label": "AI Daily Cost (USD)"
+  },
+  {
+   "chart_name": "AI Cost by Template",
+   "label": "AI Cost by Template"
+  },
+  {
+   "chart_name": "AI Cost by Model",
+   "label": "AI Cost by Model"
+  }
+ ],
+ "content": "[{\"id\":\"pIntro\",\"type\":\"paragraph\",\"data\":{\"text\":\"Low-latency voice sessions (LiveKit + Gemini). Configure templates and API keys in the cards below, then open the <b>Voice Room</b> for live conversations.\",\"col\":12}},{\"id\":\"pLinks\",\"type\":\"paragraph\",\"data\":{\"text\":\"<a href=\\\"/ai-room\\\">Voice Room</a> (<a href=\\\"/ai_room\\\">/ai_room</a>) — choose a persona on the page, or deep-link: <a href=\\\"/ai-room?template=Bank%20Interview%20Simulation\\\">Bank interview</a> · <a href=\\\"/ai-room?template=NEPSE%20CEO%20Interview%20Simulation\\\">NEPSE CEO interview</a> · <a href=\\\"/ai-room?template=PM%20AI%20Adviser%20Interview\\\">PM AI Adviser (Balen Shah)</a> · <a href=\\\"/ai-room?template=ERPNext%20Business%20Analyst\\\">ERPNext analytics</a>. Sign in on the website first.\",\"col\":12}},{\"id\":\"sp1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"hdrShort\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Overview</b></span>\",\"col\":12}},{\"id\":\"sh1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sessions\",\"col\":3}},{\"id\":\"sh2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Live Now\",\"col\":3}},{\"id\":\"sh3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Evaluated\",\"col\":3}},{\"id\":\"sh4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Agent Templates\",\"col\":3}},{\"id\":\"sp2\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"hdrCards\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters</b></span>\",\"col\":12}},{\"id\":\"c1\",\"type\":\"card\",\"data\":{\"card_name\":\"Configuration\",\"col\":4}},{\"id\":\"c2\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":4}},{\"id\":\"c3\",\"type\":\"card\",\"data\":{\"card_name\":\"Cost \\u0026 Usage\",\"col\":4}},{\"id\":\"sp3\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"hdrCost\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Cost \\u0026 Tokenomics</b></span>\",\"col\":12}},{\"id\":\"nc1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"AI Cost USD (30d)\",\"col\":3}},{\"id\":\"nc2\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"AI Cost USD (Today)\",\"col\":3}},{\"id\":\"nc3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"AI Tokens (30d)\",\"col\":3}},{\"id\":\"nc4\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"AI Usage Rows (30d)\",\"col\":3}},{\"id\":\"ch1\",\"type\":\"chart\",\"data\":{\"chart_name\":\"AI Daily Cost (USD)\",\"col\":12}},{\"id\":\"ch2\",\"type\":\"chart\",\"data\":{\"chart_name\":\"AI Cost by Template\",\"col\":6}},{\"id\":\"ch3\",\"type\":\"chart\",\"data\":{\"chart_name\":\"AI Cost by Model\",\"col\":6}}]",
+ "creation": "2026-04-02 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "microphone",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "AI Voice Engine",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Configuration",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Global Settings",
+   "link_count": 0,
+   "link_to": "AI Global Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Agent Template",
+   "link_count": 0,
+   "link_to": "AI Agent Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Operations",
+   "link_count": 1,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Session",
+   "link_count": 0,
+   "link_to": "AI Session",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cost & Usage",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "AI Tokenomics",
+   "link_count": 0,
+   "link_to": "AI Tokenomics",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Usage Record",
+   "link_count": 0,
+   "link_to": "AI Usage Record",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "AI Model Pricing",
+   "link_count": 0,
+   "link_to": "AI Model Pricing",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-04-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe AI Core",
+ "name": "AI Voice Engine",
+ "number_cards": [
+  {
+   "label": "AI Cost USD (30d)",
+   "number_card_name": "AI Cost USD (30d)"
+  },
+  {
+   "label": "AI Cost USD (Today)",
+   "number_card_name": "AI Cost USD (Today)"
+  },
+  {
+   "label": "AI Tokens (30d)",
+   "number_card_name": "AI Tokens (30d)"
+  },
+  {
+   "label": "AI Usage Rows (30d)",
+   "number_card_name": "AI Usage Rows (30d)"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 2.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "format": "{} Total",
+   "label": "Sessions",
+   "link_to": "AI Session",
+   "stats_filter": "{\"name\":[\"is\",\"set\"]}",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "format": "{} Live",
+   "label": "Live Now",
+   "link_to": "AI Session",
+   "stats_filter": "{\"status\":[\"=\",\"Live\"]}",
+   "type": "DocType"
+  },
+  {
+   "color": "Cyan",
+   "doc_view": "List",
+   "format": "{} Done",
+   "label": "Evaluated",
+   "link_to": "AI Session",
+   "stats_filter": "{\"status\":[\"=\",\"Evaluated\"]}",
+   "type": "DocType"
+  },
+  {
+   "color": "Pink",
+   "doc_view": "List",
+   "format": "{} Templates",
+   "label": "Agent Templates",
+   "link_to": "AI Agent Template",
+   "stats_filter": "{\"name\":[\"is\",\"set\"]}",
+   "type": "DocType"
+  }
+ ],
+ "title": "AI Voice Engine",
+ "type": "Workspace"
+}

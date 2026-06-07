@@ -1,0 +1,11 @@
+/*
+ * Workspaces already show the active page in the left workspace list. The page-head
+ * h3 uses heading scale (2xl/bold) and sits next to the sidebar toggle, so it reads
+ * like a broken duplicate in the sidebar column. Hide only the title text from md
+ * up where the list sidebar is shown; keep it on small screens (overlay sidebar).
+ */
+@media (min-width: 768px) {
+	#page-Workspaces .page-head .title-area .title-text {
+		display: none !important;
+	}
+}

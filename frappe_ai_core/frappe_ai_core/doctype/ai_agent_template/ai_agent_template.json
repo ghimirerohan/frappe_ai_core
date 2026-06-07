@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:agent_name",
+ "creation": "2026-04-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "agent_name",
+  "persona_type",
+  "language_mode",
+  "knowledge_base",
+  "enable_human_handoff",
+  "system_prompt",
+  "context_logic",
+  "grading_rubric"
+ ],
+ "fields": [
+  {
+   "fieldname": "agent_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Agent Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "persona_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Persona Type",
+   "options": "Interviewer\nCustomer Support\nVisa Officer\nTutor\nBusiness Analyst",
+   "reqd": 1
+  },
+  {
+   "fieldname": "language_mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Language Mode",
+   "options": "Nepali Only\nEnglish Only\nNeplish Mixed",
+   "reqd": 1
+  },
+  {
+   "description": "Optional. Knowledge base whose guidelines are injected into the prompt and whose articles the agent can search during the call.",
+   "fieldname": "knowledge_base",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Knowledge Base",
+   "options": "AI Knowledge Base"
+  },
+  {
+   "default": "0",
+   "description": "Allow the agent to transfer the call to a human agent (warm handoff with an AI-written summary).",
+   "fieldname": "enable_human_handoff",
+   "fieldtype": "Check",
+   "label": "Enable Human Handoff"
+  },
+  {
+   "fieldname": "system_prompt",
+   "fieldtype": "Small Text",
+   "label": "System Prompt",
+   "reqd": 1
+  },
+  {
+   "fieldname": "context_logic",
+   "fieldtype": "Code",
+   "label": "Context Logic",
+   "options": "Python",
+   "description": "Python that receives ref_doctype and ref_docname in scope; return a dict (JSON-serializable) merged into the agent context."
+  },
+  {
+   "fieldname": "grading_rubric",
+   "fieldtype": "JSON",
+   "label": "Grading Rubric",
+   "description": "Criteria JSON for post-call Judge Agent evaluation."
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe AI Core",
+ "name": "AI Agent Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "AI Voice Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

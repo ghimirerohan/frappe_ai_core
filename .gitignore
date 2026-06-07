@@ -1,0 +1,30 @@
+.DS_Store
+*.pyc
+*.pyo
+*.egg-info
+*.swp
+tags
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Frontend
+ai_room_frontend/node_modules/
+ai_room_frontend/dist/
+
+# Graphify (generated locally)
+graphify-out/
+
+# IDE / local tooling
+.aider*
+.helix
+.cursor/
+.vscode/
+.env
+.env.*
+
+# Python
+.venv/
+venv/
+dist/
+build/

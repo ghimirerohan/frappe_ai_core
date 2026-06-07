@@ -1,0 +1,168 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:model_id",
+ "creation": "2026-06-06 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "model_id",
+  "provider",
+  "model_kind",
+  "enabled",
+  "column_break_meta",
+  "currency_note",
+  "section_break_rates",
+  "input_text_rate",
+  "input_audio_rate",
+  "cached_input_rate",
+  "column_break_output",
+  "output_text_rate",
+  "output_audio_rate",
+  "section_break_notes",
+  "notes"
+ ],
+ "fields": [
+  {
+   "description": "Exact model id reported by the provider (e.g. gemini-2.5-flash-native-audio-preview-12-2025).",
+   "fieldname": "model_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Model ID",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "google",
+   "fieldname": "provider",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Provider"
+  },
+  {
+   "default": "Live Voice",
+   "fieldname": "model_kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Model Kind",
+   "options": "Live Voice\nText"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "column_break_meta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "currency_note",
+   "fieldtype": "Data",
+   "label": "Rate Unit",
+   "read_only": 1,
+   "default": "USD per 1,000,000 tokens"
+  },
+  {
+   "fieldname": "section_break_rates",
+   "fieldtype": "Section Break",
+   "label": "Rates (USD per 1M tokens)"
+  },
+  {
+   "default": "0",
+   "description": "USD per 1M input text tokens.",
+   "fieldname": "input_text_rate",
+   "fieldtype": "Float",
+   "label": "Input Text Rate",
+   "precision": "6"
+  },
+  {
+   "default": "0",
+   "description": "USD per 1M input audio tokens (Live Voice models).",
+   "fieldname": "input_audio_rate",
+   "fieldtype": "Float",
+   "label": "Input Audio Rate",
+   "precision": "6"
+  },
+  {
+   "default": "0",
+   "description": "USD per 1M cached input tokens (optional).",
+   "fieldname": "cached_input_rate",
+   "fieldtype": "Float",
+   "label": "Cached Input Rate",
+   "precision": "6"
+  },
+  {
+   "fieldname": "column_break_output",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "USD per 1M output text tokens.",
+   "fieldname": "output_text_rate",
+   "fieldtype": "Float",
+   "label": "Output Text Rate",
+   "precision": "6"
+  },
+  {
+   "default": "0",
+   "description": "USD per 1M output audio tokens (Live Voice models).",
+   "fieldname": "output_audio_rate",
+   "fieldtype": "Float",
+   "label": "Output Audio Rate",
+   "precision": "6"
+  },
+  {
+   "fieldname": "section_break_notes",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-06 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe AI Core",
+ "name": "AI Model Pricing",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "AI Voice Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
