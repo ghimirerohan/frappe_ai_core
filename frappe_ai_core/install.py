@@ -13,26 +13,95 @@ def before_install():
 def after_install():
 	_ensure_ai_voice_manager_role()
 	_ensure_ai_human_agent_role()
-	_ensure_bank_interview_template()
-	_ensure_nepse_ceo_interview_template()
-	_ensure_pm_ai_adviser_template()
-	_ensure_civil_engineer_interview_template()
-	_ensure_erpnext_analyst_template()
-	_ensure_model_pricing()
-	_ensure_cost_dashboard()
+	_seed_site_data()
 
 
 def after_migrate():
 	_ensure_ai_voice_manager_role()
 	_ensure_ai_human_agent_role()
 	_remove_legacy_workspace()
+	_seed_site_data()
+
+
+def _seed_site_data():
+	"""Seed AI Global Settings defaults, agent templates, eSewa KB, pricing, and cost dashboard (idempotent)."""
+	_ensure_global_settings_defaults()
 	_ensure_bank_interview_template()
 	_ensure_nepse_ceo_interview_template()
 	_ensure_pm_ai_adviser_template()
 	_ensure_civil_engineer_interview_template()
 	_ensure_erpnext_analyst_template()
+	from frappe_ai_core.demo.esewa_seed import ensure_esewa_call_center
+
+	ensure_esewa_call_center()
 	_ensure_model_pricing()
 	_ensure_cost_dashboard()
+
+
+def _upsert_agent_template(
+	name,
+	*,
+	persona_type,
+	language_mode,
+	system_prompt,
+	context_logic,
+	grading_rubric,
+	knowledge_base=None,
+	enable_human_handoff=0,
+):
+	"""Insert or update a shipped AI Agent Template so app upgrades refresh prompts."""
+	values = {
+		"persona_type": persona_type,
+		"language_mode": language_mode,
+		"system_prompt": system_prompt,
+		"context_logic": context_logic,
+		"grading_rubric": grading_rubric,
+	}
+	if knowledge_base:
+		values["knowledge_base"] = knowledge_base
+	if enable_human_handoff:
+		values["enable_human_handoff"] = enable_human_handoff
+
+	if frappe.db.exists("AI Agent Template", name):
+		doc = frappe.get_doc("AI Agent Template", name)
+		for field, value in values.items():
+			setattr(doc, field, value)
+		doc.save(ignore_permissions=True)
+	else:
+		frappe.get_doc({"doctype": "AI Agent Template", "agent_name": name, **values}).insert(
+			ignore_permissions=True
+		)
+	frappe.db.commit()
+
+
+def _ensure_global_settings_defaults():
+	"""Fill AI Global Settings with dev-friendly defaults; never overwrite API keys or secrets already set."""
+	doc = frappe.get_single("AI Global Settings")
+	defaults = {
+		"livekit_url": "ws://localhost:7880",
+		"livekit_internal_url": "ws://livekit:7880",
+		"livekit_api_key": "devkey",
+		"gemini_model": "gemini-2.5-flash-native-audio-preview-12-2025",
+		"judge_model": "gemini-3.1-flash-lite-preview",
+		"livekit_agent_name": "frappe-ai-voice",
+		"analytics_agent_name": "frappe-ai-analytics",
+		"erpnext_mcp_categories": "sales,inventory,accounting,analytics",
+		"usd_to_npr_rate": 141.0,
+	}
+	changed = False
+	for field, default in defaults.items():
+		if not doc.get(field):
+			doc.set(field, default)
+			changed = True
+	if not doc.get_password("livekit_api_secret", raise_exception=False):
+		doc.livekit_api_secret = "secret"
+		changed = True
+	if not doc.erpnext_mcp_url:
+		doc.erpnext_mcp_url = frappe.utils.get_url()
+		changed = True
+	if changed:
+		doc.save(ignore_permissions=True)
+		frappe.db.commit()
 
 
 def _ensure_ai_voice_manager_role():
@@ -68,9 +137,6 @@ def _remove_legacy_workspace():
 def _ensure_bank_interview_template():
 	"""Default Neplish bank-interview simulation for first live test (idempotent)."""
 	name = "Bank Interview Simulation"
-	if frappe.db.exists("AI Agent Template", name):
-		return
-
 	system_prompt = """You are a senior HR and branch-banking interviewer at a reputable bank in Nepal. You are conducting a realistic screening interview for a frontline or trainee role (teller / customer service / branch operations).
 
 Your style:
@@ -125,15 +191,14 @@ Your style:
 		"scoring_guide": "Holistic score 0–100. Penalize dishonest, unsafe, or dismissive answers about customer data or fraud.",
 	}
 
-	doc = frappe.new_doc("AI Agent Template")
-	doc.agent_name = name
-	doc.persona_type = "Interviewer"
-	doc.language_mode = "Neplish Mixed"
-	doc.system_prompt = system_prompt
-	doc.context_logic = context_logic
-	doc.grading_rubric = grading_rubric
-	doc.insert(ignore_permissions=True)
-	frappe.db.commit()
+	_upsert_agent_template(
+		name,
+		persona_type="Interviewer",
+		language_mode="Neplish Mixed",
+		system_prompt=system_prompt,
+		context_logic=context_logic,
+		grading_rubric=grading_rubric,
+	)
 
 
 # ---------------------------------------------------------------------------
@@ -143,9 +208,6 @@ Your style:
 def _ensure_nepse_ceo_interview_template():
 	"""Selection-panel interview for Nepal Stock Exchange (NEPSE) CEO — expert capital-markets candidate (idempotent)."""
 	name = "NEPSE CEO Interview Simulation"
-	if frappe.db.exists("AI Agent Template", name):
-		return
-
 	system_prompt = """You are the chair of a senior selection panel interviewing finalists for the role of Chief Executive Officer (CEO) of the Nepal Stock Exchange (NEPSE). The candidate in this voice session is an experienced Nepal capital markets professional (broker-dealer, asset management, research, or regulatory background).
 
 Your style:
@@ -202,15 +264,14 @@ Your style:
 		"scoring_guide": "Holistic score 0–100. Reward specific Nepal capital-markets insight; penalize hand-waving, disregard for investor protection, or dismissive attitudes toward regulation.",
 	}
 
-	doc = frappe.new_doc("AI Agent Template")
-	doc.agent_name = name
-	doc.persona_type = "Interviewer"
-	doc.language_mode = "Neplish Mixed"
-	doc.system_prompt = system_prompt
-	doc.context_logic = context_logic
-	doc.grading_rubric = grading_rubric
-	doc.insert(ignore_permissions=True)
-	frappe.db.commit()
+	_upsert_agent_template(
+		name,
+		persona_type="Interviewer",
+		language_mode="Neplish Mixed",
+		system_prompt=system_prompt,
+		context_logic=context_logic,
+		grading_rubric=grading_rubric,
+	)
 
 
 # ---------------------------------------------------------------------------
@@ -220,9 +281,6 @@ Your style:
 def _ensure_pm_ai_adviser_template():
 	"""Selection-panel interview for AI Adviser to PM Balen Shah (idempotent)."""
 	name = "PM AI Adviser Interview"
-	if frappe.db.exists("AI Agent Template", name):
-		return
-
 	system_prompt = """You are the lead interviewer on the Prime Minister's Special Appointment Committee. Prime Minister Balen Shah — the first Gen-Z, independent, youth-movement PM in Nepal's history — has created a new senior advisory post: **AI Adviser to the Prime Minister**. You are selecting one person for this role.
 
 Background you know (use naturally, do not dump it on the candidate):
@@ -299,15 +357,14 @@ Your interviewing style:
 		"scoring_guide": "Holistic score 0–100. Reward Nepal-specific depth, honest trade-off analysis, and the ability to say 'this won't work here and here's why'. Penalize empty buzzwords, ignoring Nepal's constraints, sycophantic non-answers, or disregard for democratic safeguards.",
 	}
 
-	doc = frappe.new_doc("AI Agent Template")
-	doc.agent_name = name
-	doc.persona_type = "Interviewer"
-	doc.language_mode = "Neplish Mixed"
-	doc.system_prompt = system_prompt
-	doc.context_logic = context_logic
-	doc.grading_rubric = grading_rubric
-	doc.insert(ignore_permissions=True)
-	frappe.db.commit()
+	_upsert_agent_template(
+		name,
+		persona_type="Interviewer",
+		language_mode="Neplish Mixed",
+		system_prompt=system_prompt,
+		context_logic=context_logic,
+		grading_rubric=grading_rubric,
+	)
 
 
 # ---------------------------------------------------------------------------
@@ -317,9 +374,6 @@ Your interviewing style:
 def _ensure_civil_engineer_interview_template():
 	"""Technical interview for mid-level civil engineers in Nepal (BE, ~4–5 years site experience) (idempotent)."""
 	name = "Nepal Civil Engineer Interview Simulation"
-	if frappe.db.exists("AI Agent Template", name):
-		return
-
 	system_prompt = """You are a senior civil engineer and hiring panel lead at a well-known consultancy / contractor firm in Kathmandu, Nepal. You are interviewing a candidate for a **Site Engineer / Junior Engineer (Civil)** role. The candidate profile you expect: **Bachelor's degree in Civil Engineering (BE Civil)** from a recognized Nepali university, and roughly **4 to 5 years** of practical site experience in Nepal (building, road, or water supply / sanitation projects).
 
 **Language (very important):**
@@ -400,23 +454,19 @@ Open with a brief Nepali greeting, state the role (Site Engineer / Junior Engine
 		"scoring_guide": "Holistic score 0–100. Reward concrete Nepal site experience and honest trade-offs. Penalize pure theory with no site examples, unsafe shortcuts, or inability to explain basic QC steps.",
 	}
 
-	doc = frappe.new_doc("AI Agent Template")
-	doc.agent_name = name
-	doc.persona_type = "Interviewer"
-	doc.language_mode = "Neplish Mixed"
-	doc.system_prompt = system_prompt
-	doc.context_logic = context_logic
-	doc.grading_rubric = grading_rubric
-	doc.insert(ignore_permissions=True)
-	frappe.db.commit()
+	_upsert_agent_template(
+		name,
+		persona_type="Interviewer",
+		language_mode="Neplish Mixed",
+		system_prompt=system_prompt,
+		context_logic=context_logic,
+		grading_rubric=grading_rubric,
+	)
 
 
 def _ensure_erpnext_analyst_template():
 	"""Voice analytics persona: ERPNext data via MCP tools, Neplish explanations (idempotent)."""
 	name = "ERPNext Business Analyst"
-	if frappe.db.exists("AI Agent Template", name):
-		return
-
 	system_prompt = """You are the Lead Business Analyst for this organization. You answer questions about sales, inventory, accounting, and operations using the ERPNext tools available to you in this session.
 
 Your style:
@@ -464,15 +514,14 @@ Your style:
 		"scoring_guide": "Holistic score 0–100. Penalize hallucinated numbers or ignoring obvious tool errors.",
 	}
 
-	doc = frappe.new_doc("AI Agent Template")
-	doc.agent_name = name
-	doc.persona_type = "Business Analyst"
-	doc.language_mode = "Neplish Mixed"
-	doc.system_prompt = system_prompt
-	doc.context_logic = context_logic
-	doc.grading_rubric = grading_rubric
-	doc.insert(ignore_permissions=True)
-	frappe.db.commit()
+	_upsert_agent_template(
+		name,
+		persona_type="Business Analyst",
+		language_mode="Neplish Mixed",
+		system_prompt=system_prompt,
+		context_logic=context_logic,
+		grading_rubric=grading_rubric,
+	)
 
 
 # ---------------------------------------------------------------------------

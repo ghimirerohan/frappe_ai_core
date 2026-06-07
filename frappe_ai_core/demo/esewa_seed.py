@@ -385,6 +385,35 @@ def _ensure_kb() -> str:
     return kb.name
 
 
+def _sync_articles(kb_name: str) -> int:
+    """Upsert shipped articles by title (safe for install/migrate)."""
+    for title, keywords, content in ARTICLES:
+        existing = frappe.db.get_value(
+            "AI Knowledge Article",
+            {"knowledge_base": kb_name, "title": title},
+            "name",
+        )
+        if existing:
+            doc = frappe.get_doc("AI Knowledge Article", existing)
+            doc.keywords = keywords
+            doc.content = content
+            doc.enabled = 1
+            doc.save(ignore_permissions=True)
+        else:
+            frappe.get_doc(
+                {
+                    "doctype": "AI Knowledge Article",
+                    "knowledge_base": kb_name,
+                    "title": title,
+                    "keywords": keywords,
+                    "content": content,
+                    "enabled": 1,
+                }
+            ).insert(ignore_permissions=True)
+    frappe.db.commit()
+    return len(ARTICLES)
+
+
 def _rebuild_articles(kb_name: str) -> int:
     existing = frappe.get_all(
         "AI Knowledge Article", filters={"knowledge_base": kb_name}, pluck="name"
@@ -392,19 +421,7 @@ def _rebuild_articles(kb_name: str) -> int:
     for name in existing:
         frappe.delete_doc("AI Knowledge Article", name, force=True, ignore_permissions=True)
 
-    for title, keywords, content in ARTICLES:
-        frappe.get_doc(
-            {
-                "doctype": "AI Knowledge Article",
-                "knowledge_base": kb_name,
-                "title": title,
-                "keywords": keywords,
-                "content": content,
-                "enabled": 1,
-            }
-        ).insert(ignore_permissions=True)
-    frappe.db.commit()
-    return len(ARTICLES)
+    return _sync_articles(kb_name)
 
 
 def _ensure_template(kb_name: str) -> str:
@@ -429,11 +446,23 @@ def _ensure_template(kb_name: str) -> str:
     return doc.name
 
 
-def run() -> None:
+def ensure_esewa_call_center(*, rebuild_articles: bool = False) -> dict:
+    """Idempotent eSewa KB + articles + agent template (used by install/migrate)."""
     kb_name = _ensure_kb()
-    count = _rebuild_articles(kb_name)
+    if rebuild_articles:
+        count = _rebuild_articles(kb_name)
+    else:
+        count = _sync_articles(kb_name)
     template = _ensure_template(kb_name)
-    print(f"eSewa demo ready: KB='{kb_name}', articles={count}, template='{template}'")
+    return {"kb": kb_name, "articles": count, "template": template}
+
+
+def run() -> None:
+    result = ensure_esewa_call_center(rebuild_articles=True)
+    print(
+        f"eSewa demo ready: KB='{result['kb']}', articles={result['articles']}, "
+        f"template='{result['template']}'"
+    )
 
 
 def verify() -> None:

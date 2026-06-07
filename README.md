@@ -13,7 +13,9 @@ bench pip install -e apps/frappe_ai_core
 bench pip install 'livekit-agents[google,mcp]>=1.4.0'
 ```
 
-Configure **AI Global Settings** (Desk) with API keys and LiveKit URL.
+**Install and migrate auto-seed** (idempotent): roles, **AI Global Settings** defaults (LiveKit URLs, models, USD→NPR rate — not API keys), all shipped **AI Agent Templates** (bank interview, NEPSE CEO, PM AI Adviser, civil engineer, ERPNext analyst, **eSewa Call Center Agent**), **eSewa Call Center** knowledge base + articles, **AI Model Pricing** rows, and tokenomics dashboard cards/charts. Re-running `bench migrate` refreshes shipped template/KB content without wiping your API keys.
+
+After install, set **Gemini API Key** (and ERPNext MCP credentials if using the analytics agent) in **AI Global Settings** (Desk).
 
 For **Gemini Live Model**, use a documented **Live API** voice id. Default is **`gemini-2.5-flash-native-audio-preview-12-2025`** (matches `livekit-plugins-google`). You can try **`gemini-3.1-flash-live-preview`** if your key accepts it; WebSocket **1007** often means the model id is not valid for your API/SDK combo. Do not put **Flash-Lite** here (text only; use **Judge Model**). Unknown ids normalize to the default.
 
@@ -73,7 +75,7 @@ If the page shows **LiveKit room connected** but **Connecting…** / **Waiting f
 
 ## eSewa call center demo
 
-One-shot prep (idempotent — knowledge base, **eSewa Call Center Agent** template, demo users, checklist):
+KB + **eSewa Call Center Agent** template are created on `install-app` / `migrate`. For **demo users** and a readiness checklist, run:
 
 ```bash
 bench --site development.localhost execute frappe_ai_core.demo.esewa_demo_prep.run
