@@ -1,8 +1,9 @@
 import frappe
 
+from frappe_ai_core.www._portal_context import apply_portal_context
+
 no_cache = 1
 
 
 def get_context(context):
-	context.csrf_token = frappe.sessions.get_csrf_token()
-	frappe.db.commit()
+	apply_portal_context(context)

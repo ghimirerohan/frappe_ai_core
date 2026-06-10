@@ -2,11 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AgentConsole from "./components/AgentConsole";
 import AnalyticsLayout from "./components/AnalyticsLayout";
 import CostDashboard from "./components/CostDashboard";
+import { PortalGate } from "./components/PortalGate";
 import SessionReview from "./components/SessionReview";
 import SessionReviewList from "./components/SessionReviewList";
 import VoiceRoom from "./components/VoiceRoom";
+import { SupportAppShell } from "./components/layout/SupportAppShell";
+import { Button } from "./components/ui/Button";
+import { Card } from "./components/ui/Card";
 import { canAccessMicrophone, getMicrophoneBlockMessage } from "./lib/mediaAccess";
-import { csrf } from "./utils/csrf";
+import { apiGet, apiPost } from "./utils/api";
 
 type AgentTemplateRow = {
 	name: string;
@@ -15,7 +19,6 @@ type AgentTemplateRow = {
 	language_mode?: string;
 };
 
-// Default agent template for the customer support portal (/support). Overridable via ?template=.
 const SUPPORT_DEFAULT_TEMPLATE = "eSewa Call Center Agent";
 
 export default function App() {
@@ -25,16 +28,12 @@ export default function App() {
 	const templateFromUrl = qs.get("template") || undefined;
 	const mode = qs.get("mode") || undefined;
 
-	// Route by pathname so customer and human rep get clean, distinct "portal" URLs:
-	//   /support        -> customer starts a support query
-	//   /support/agent  -> human rep picks up handoffs (same as ?mode=agent)
 	const path = useMemo(() => window.location.pathname.replace(/\/+$/, ""), []);
 	const isAgentRoute = mode === "agent" || /\/agent$/.test(path);
 	const isCostRoute = mode === "cost" || /\/cost$/.test(path);
 	const isReviewRoute = /\/review$/.test(path);
 	const isReviewsListRoute = /\/reviews$/.test(path);
 	const isSupportPortal = path === "/support" || path.startsWith("/support");
-	const agentConsoleHref = isSupportPortal ? "/support/agent" : "/ai-room?mode=agent";
 	const reviewSessionFromUrl = qs.get("session") || undefined;
 
 	const [token, setToken] = useState<string | null>(null);
@@ -81,16 +80,9 @@ export default function App() {
 			setTemplatesLoading(true);
 			setTemplatesError(null);
 			try {
-				const res = await fetch("/api/method/frappe_ai_core.api.session.list_agent_templates");
-				const json = (await res.json()) as { message?: AgentTemplateRow[]; exc?: string };
+				const rows = await apiGet<AgentTemplateRow[]>("frappe_ai_core.api.session.list_agent_templates");
 				if (cancelled) return;
-				if (!res.ok || json.exc) {
-					setTemplatesError(typeof json.exc === "string" ? json.exc : res.statusText);
-					setTemplates([]);
-					return;
-				}
-				const rows = Array.isArray(json.message) ? json.message : [];
-				setTemplates(rows);
+				setTemplates(Array.isArray(rows) ? rows : []);
 			} catch (e) {
 				if (!cancelled) {
 					setTemplatesError(e instanceof Error ? e.message : String(e));
@@ -150,26 +142,21 @@ export default function App() {
 		}
 		setLoading(true);
 		try {
-			const params = new URLSearchParams();
-			if (refDoctype) params.set("ref_doctype", refDoctype);
-			if (refDocname) params.set("ref_docname", refDocname);
+			const params: Record<string, string> = {};
+			if (refDoctype) params.ref_doctype = refDoctype;
+			if (refDocname) params.ref_docname = refDocname;
 			const t = selectedTemplateName || templateFromUrl;
-			if (t) params.set("template_name", t);
-			const res = await fetch(
-				`/api/method/frappe_ai_core.api.session.get_session_token?${params.toString()}`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						"X-Frappe-CSRF-Token": csrf(),
-					},
-				},
-			);
-			const json = await res.json();
-			if (!res.ok || json.exc) {
-				throw new Error(json.exc || json.message || res.statusText);
-			}
-			const msg = json.message;
+			if (t) params.template_name = t;
+			const msg = await apiPost<{
+				token: string;
+				livekit_url: string;
+				room_name: string;
+				gemini_model_label?: string;
+				gemini_model?: string;
+				persona_type?: string;
+				conversation_id?: string;
+				lan_warnings?: string[];
+			}>("frappe_ai_core.api.session.get_session_token", params);
 			setToken(msg.token);
 			setServerUrl(msg.livekit_url);
 			setRoomName(msg.room_name);
@@ -187,47 +174,54 @@ export default function App() {
 		}
 	}, [refDoctype, refDocname, selectedTemplateName, templateFromUrl]);
 
+	const fullPath = path + window.location.search;
+
 	if (isCostRoute) {
-		return <CostDashboard />;
+		return (
+			<PortalGate path={fullPath}>
+				<CostDashboard />
+			</PortalGate>
+		);
 	}
 
 	if (isReviewsListRoute) {
-		return <SessionReviewList />;
+		return (
+			<PortalGate path={fullPath}>
+				<SessionReviewList />
+			</PortalGate>
+		);
 	}
 
 	if (reviewSession || (isReviewRoute && reviewSessionFromUrl)) {
 		return (
-			<SessionReview
-				sessionName={reviewSession || reviewSessionFromUrl!}
-				backHref="/support"
-				backLabel="← Back to support"
-			/>
+			<PortalGate path={fullPath}>
+				<SessionReview
+					sessionName={reviewSession || reviewSessionFromUrl!}
+					backHref="/support"
+					backLabel="← Back to support"
+				/>
+			</PortalGate>
 		);
 	}
 
 	if (isAgentRoute) {
-		return <AgentConsole />;
+		return (
+			<PortalGate path={fullPath}>
+				<AgentConsole />
+			</PortalGate>
+		);
 	}
 
 	if (token && serverUrl && roomName) {
 		if (!canAccessMicrophone()) {
 			return (
-				<div
-					style={{
-						minHeight: "100dvh",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-						padding: "1.5rem",
-						fontFamily: "system-ui, sans-serif",
-						background: "#0f172a",
-						color: "#fecaca",
-					}}
-				>
-					<p style={{ maxWidth: 520, lineHeight: 1.55, textAlign: "center" }}>
-						{mediaBlock || getMicrophoneBlockMessage()}
-					</p>
-				</div>
+				<SupportAppShell>
+					<div className="flex flex-1 items-center justify-center p-6">
+						<p className="text-red-200 text-center max-w-md leading-relaxed">
+							{mediaBlock || getMicrophoneBlockMessage()}
+						</p>
+					</div>
+				</SupportAppShell>
 			);
 		}
 		if (personaType === "Business Analyst") {
@@ -246,21 +240,7 @@ export default function App() {
 		return (
 			<>
 				{lanWarning ? (
-					<div
-						style={{
-							position: "fixed",
-							top: 0,
-							left: 0,
-							right: 0,
-							zIndex: 50,
-							padding: "10px 14px",
-							background: "#422006",
-							color: "#fde68a",
-							fontSize: "0.82rem",
-							lineHeight: 1.45,
-							borderBottom: "1px solid #92400e",
-						}}
-					>
+					<div className="fixed top-0 left-0 right-0 z-50 px-4 py-2.5 bg-amber-950 border-b border-amber-800 text-amber-200 text-sm">
 						{lanWarning}
 					</div>
 				) : null}
@@ -268,8 +248,7 @@ export default function App() {
 					token={token}
 					serverUrl={serverUrl}
 					roomName={roomName}
-					geminiModelLabel={geminiModelLabel ?? undefined}
-					geminiModelId={geminiModelId ?? undefined}
+					isSupportPortal={isSupportPortal}
 					onLeave={() => finishCall(isSupportPortal ? roomName : null)}
 					showAnalyticsPanel={false}
 				/>
@@ -280,205 +259,76 @@ export default function App() {
 	const selectDisabled = templatesLoading || templates.length === 0;
 	const selectedMeta = templates.find((t) => t.name === selectedTemplateName);
 	const startDisabled = loading || selectDisabled || !selectedTemplateName;
-	const supportName = selectedMeta?.agent_name || "Customer Support";
-
-	const agentConsoleLink = (
-		<a
-			href={agentConsoleHref}
-			style={{ color: "#a5b4fc", fontSize: "0.8rem", textDecoration: "none", opacity: 0.85 }}
-		>
-			Support agent? Open the agent console →
-		</a>
-	);
+	const supportName = selectedMeta?.agent_name || "Sewa";
 
 	if (isSupportPortal) {
 		return (
-			<div
-				style={{
-					minHeight: "100dvh",
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "center",
-					justifyContent: "center",
-					padding: "1.5rem",
-					fontFamily: "system-ui, sans-serif",
-					background: "linear-gradient(160deg, #0f172a, #14532d)",
-					color: "#e2e8f0",
-				}}
-			>
-				<div
-					style={{
-						width: "100%",
-						maxWidth: 440,
-						textAlign: "center",
-						background: "rgba(15, 23, 42, 0.55)",
-						border: "1px solid rgba(148, 163, 184, 0.25)",
-						borderRadius: 18,
-						padding: "2rem 1.5rem",
-					}}
-				>
-					<div style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>🎧</div>
-					<h1 style={{ fontSize: "1.5rem", margin: "0 0 0.5rem" }}>{supportName}</h1>
-					<p style={{ opacity: 0.85, margin: "0 0 1.5rem", lineHeight: 1.5 }}>
-						Start a voice call with our support assistant. It can answer common questions instantly and
-						connect you to a human agent whenever you need one.
-					</p>
-					{templatesError ? (
-						<p style={{ color: "#fca5a5", marginBottom: "0.75rem", fontSize: "0.9rem" }}>{templatesError}</p>
-					) : null}
-					{mediaBlock ? (
-						<p
-							style={{
-								color: "#fcd34d",
-								marginBottom: "0.75rem",
-								fontSize: "0.85rem",
-								lineHeight: 1.45,
-								textAlign: "left",
-							}}
-						>
-							{mediaBlock}
-						</p>
-					) : null}
-					<button
-						type="button"
-						onClick={() => void start()}
-						disabled={startDisabled}
-						style={{
-							padding: "16px 28px",
-							fontSize: "1.1rem",
-							fontWeight: 600,
-							borderRadius: 12,
-							border: "none",
-							background: "#22c55e",
-							color: "#052e16",
-							cursor: startDisabled ? "not-allowed" : "pointer",
-							width: "100%",
-							opacity: startDisabled ? 0.6 : 1,
-						}}
-					>
-						{loading ? "Connecting…" : templatesLoading ? "Loading…" : "Start support call"}
-					</button>
-					{error ? (
-						<p style={{ color: "#fca5a5", marginTop: "1rem", textAlign: "center" }}>{error}</p>
-					) : null}
-				</div>
-				<div style={{ marginTop: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "center" }}>
-					{agentConsoleLink}
-					<a
-						href="/support/reviews"
-						style={{ color: "#a5b4fc", fontSize: "0.8rem", textDecoration: "none", opacity: 0.85 }}
-					>
-						Manager: session reviews & ratings →
-					</a>
-				</div>
-			</div>
+			<PortalGate path={fullPath}>
+				<SupportAppShell>
+					<div className="flex flex-1 items-center justify-center p-6">
+						<Card className="w-full max-w-md text-center">
+							<p className="text-xs uppercase tracking-widest text-emerald-400/80 mb-2">eSewa customer care</p>
+							<h1 className="text-2xl font-semibold text-slate-50 mb-2">{supportName}</h1>
+							<p className="text-sm text-slate-400 leading-relaxed mb-6">
+								Voice support powered by AI. Get instant answers to common questions, or speak with a
+								human agent when you need personal assistance.
+							</p>
+							{templatesError ? (
+								<p className="text-red-300 text-sm mb-4">{templatesError}</p>
+							) : null}
+							{mediaBlock ? (
+								<p className="text-amber-200 text-sm mb-4 text-left leading-relaxed">{mediaBlock}</p>
+							) : null}
+							<Button variant="primary" size="lg" disabled={startDisabled} onClick={() => void start()}>
+								{loading ? "Connecting…" : templatesLoading ? "Loading…" : "Start support call"}
+							</Button>
+							{error ? <p className="text-red-300 text-sm mt-4">{error}</p> : null}
+							<p className="text-xs text-slate-500 mt-6">
+								Secure voice channel · Your MPIN and OTP are never requested
+							</p>
+						</Card>
+					</div>
+				</SupportAppShell>
+			</PortalGate>
 		);
 	}
 
 	return (
-		<div
-			style={{
-				minHeight: "100dvh",
-				display: "flex",
-				flexDirection: "column",
-				alignItems: "center",
-				justifyContent: "center",
-				padding: "1.5rem",
-				fontFamily: "system-ui, sans-serif",
-				background: "linear-gradient(160deg, #0f172a, #1e1b4b)",
-				color: "#e2e8f0",
-			}}
-		>
-			<h1 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>AI Voice Room</h1>
-			<p style={{ opacity: 0.85, textAlign: "center", maxWidth: 400, marginBottom: "1rem" }}>
-				Low-latency voice session via LiveKit and Gemini. Log in on this site, choose an interview persona,
-				then start.
-			</p>
-
-			<label
-				htmlFor="ai-template-select"
-				style={{ alignSelf: "stretch", maxWidth: 400, marginBottom: "0.35rem", fontSize: "0.8rem", opacity: 0.9 }}
-			>
-				Persona / agent template
-			</label>
-			<select
-				id="ai-template-select"
-				value={selectedTemplateName}
-				disabled={selectDisabled}
-				onChange={(e) => onSelectTemplate(e.target.value)}
-				style={{
-					alignSelf: "stretch",
-					maxWidth: 400,
-					marginBottom: "0.5rem",
-					padding: "10px 12px",
-					fontSize: "1rem",
-					borderRadius: 10,
-					border: "1px solid rgba(148, 163, 184, 0.35)",
-					background: "rgba(15, 23, 42, 0.85)",
-					color: "#e2e8f0",
-					cursor: selectDisabled ? "not-allowed" : "pointer",
-				}}
-			>
-				{templatesLoading ? (
-					<option value="">Loading templates…</option>
-				) : templates.length === 0 ? (
-					<option value="">No templates — create one in AI Agent Template</option>
-				) : (
-					templates.map((row) => (
-						<option key={row.name} value={row.name}>
-							{row.agent_name} ({row.persona_type}
-							{row.language_mode ? ` · ${row.language_mode}` : ""})
-						</option>
-					))
-				)}
-			</select>
-			{selectedMeta ? (
-				<p style={{ fontSize: "0.8rem", opacity: 0.75, maxWidth: 400, marginBottom: "1rem", textAlign: "center" }}>
-					Session uses template <strong>{selectedMeta.agent_name}</strong>
+		<PortalGate path={fullPath}>
+			<div className="min-h-dvh flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-900 to-indigo-950 text-slate-100 font-sans">
+				<h1 className="text-xl font-semibold mb-2">AI Voice Room</h1>
+				<p className="opacity-85 text-center max-w-md mb-4 text-sm">
+					Low-latency voice session via LiveKit and Gemini. Choose a persona, then start.
 				</p>
-			) : null}
-			{templatesError ? (
-				<p style={{ color: "#fca5a5", marginBottom: "0.75rem", maxWidth: 400, textAlign: "center", fontSize: "0.9rem" }}>
-					{templatesError}
-				</p>
-			) : null}
-			{mediaBlock ? (
-				<p
-					style={{
-						color: "#fcd34d",
-						marginBottom: "0.75rem",
-						maxWidth: 400,
-						fontSize: "0.85rem",
-						lineHeight: 1.45,
-						textAlign: "left",
-					}}
+				<label htmlFor="ai-template-select" className="text-xs opacity-90 mb-1 self-stretch max-w-md">
+					Persona / agent template
+				</label>
+				<select
+					id="ai-template-select"
+					value={selectedTemplateName}
+					disabled={selectDisabled}
+					onChange={(e) => onSelectTemplate(e.target.value)}
+					className="self-stretch max-w-md mb-4 px-3 py-2.5 rounded-xl border border-white/10 bg-slate-900/80 text-slate-100"
 				>
-					{mediaBlock}
-				</p>
-			) : null}
-
-			<button
-				type="button"
-				onClick={() => void start()}
-				disabled={startDisabled}
-				style={{
-					padding: "14px 28px",
-					fontSize: "1.05rem",
-					borderRadius: 12,
-					border: "none",
-					background: "#6366f1",
-					color: "#fff",
-					cursor: startDisabled ? "not-allowed" : "pointer",
-					minWidth: 200,
-					opacity: selectDisabled || !selectedTemplateName ? 0.6 : 1,
-				}}
-			>
-				{loading ? "Connecting…" : "Start voice session"}
-			</button>
-			{error ? (
-				<p style={{ color: "#fca5a5", marginTop: "1rem", maxWidth: 400, textAlign: "center" }}>{error}</p>
-			) : null}
-			<div style={{ marginTop: "1.5rem" }}>{agentConsoleLink}</div>
-		</div>
+					{templatesLoading ? (
+						<option value="">Loading templates…</option>
+					) : templates.length === 0 ? (
+						<option value="">No templates available</option>
+					) : (
+						templates.map((row) => (
+							<option key={row.name} value={row.name}>
+								{row.agent_name} ({row.persona_type})
+							</option>
+						))
+					)}
+				</select>
+				{templatesError ? <p className="text-red-300 text-sm mb-3">{templatesError}</p> : null}
+				{mediaBlock ? <p className="text-amber-200 text-sm mb-3 max-w-md">{mediaBlock}</p> : null}
+				<Button variant="agent" disabled={startDisabled} onClick={() => void start()}>
+					{loading ? "Connecting…" : "Start voice session"}
+				</Button>
+				{error ? <p className="text-red-300 text-sm mt-4">{error}</p> : null}
+			</div>
+		</PortalGate>
 	);
 }

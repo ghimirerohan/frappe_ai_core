@@ -4,196 +4,126 @@ import {
 	useDataChannel,
 	useRemoteParticipants,
 	useRoomContext,
+	useTracks,
 	useVoiceAssistant,
 } from "@livekit/components-react";
-import { useCallback, useEffect, useState } from "react";
+import { Track } from "livekit-client";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
+import { SupportAppShell } from "@/components/layout/SupportAppShell";
+import { Button } from "@/components/ui/Button";
 import ChatPanel from "./ChatPanel";
 import LiveVoiceModelSubscriber from "./LiveVoiceModelSubscriber";
 import StatusIndicator from "./StatusIndicator";
 
+type CallPhase = "ai_active" | "handoff_pending" | "human_live";
+
 function EndSessionButton() {
 	const room = useRoomContext();
 	return (
-		<button
-			type="button"
-			onClick={() => {
-				room.disconnect();
-			}}
-			style={{
-				padding: "12px 24px",
-				borderRadius: 12,
-				border: "none",
-				background: "#ef4444",
-				color: "#fff",
-				fontSize: "1rem",
-				cursor: "pointer",
-			}}
-		>
-			End session
-		</button>
+		<Button variant="danger" size="md" onClick={() => room.disconnect()}>
+			End call
+		</Button>
 	);
 }
 
-function HandoffBanner() {
-	const [requested, setRequested] = useState(false);
-	const remotes = useRemoteParticipants();
-	const humanJoined = remotes.some((p) => (p.identity || "").startsWith("agent-human-"));
+function HandoffBanner({
+	phase,
+	agentName,
+}: {
+	phase: CallPhase;
+	agentName: string;
+}) {
+	if (phase === "ai_active") return null;
 
-	const handler = useCallback((msg: { payload: Uint8Array }) => {
-		try {
-			const data = JSON.parse(new TextDecoder().decode(msg.payload)) as { status?: string };
-			if (data.status === "requested") setRequested(true);
-		} catch {
-			/* ignore non-JSON payloads */
-		}
-	}, []);
-	useDataChannel("handoff", handler);
-
-	if (!requested && !humanJoined) return null;
-
+	const isHuman = phase === "human_live";
 	return (
-		<div
-			style={{
-				margin: "0 auto 1rem",
-				maxWidth: 520,
-				padding: "0.75rem 1rem",
-				borderRadius: 12,
-				background: humanJoined ? "rgba(22, 101, 52, 0.35)" : "rgba(120, 53, 15, 0.35)",
-				border: `1px solid ${humanJoined ? "rgba(74, 222, 128, 0.5)" : "rgba(251, 191, 36, 0.5)"}`,
-				textAlign: "center",
-				fontSize: "0.9rem",
-			}}
-			aria-live="polite"
-		>
-			{humanJoined
-				? "A human agent has joined the call. You can talk to them now."
-				: "Connecting you to a human agent… please hold."}
-		</div>
+		<AnimatePresence>
+			<motion.div
+				initial={{ opacity: 0, y: -8 }}
+				animate={{ opacity: 1, y: 0 }}
+				className={`mx-auto mb-4 max-w-lg rounded-xl px-4 py-3 text-center text-sm ${
+					isHuman
+						? "bg-emerald-900/50 border border-emerald-400/40 text-emerald-100"
+						: "bg-amber-900/40 border border-amber-400/40 text-amber-100"
+				}`}
+				aria-live="polite"
+			>
+				{isHuman ? (
+					<>
+						<p className="font-semibold">AI has left — you are with a human agent</p>
+						<p className="mt-1 text-xs opacity-90">
+							{agentName ? `Speaking with ${agentName}` : "A human agent is live on the call"}
+						</p>
+					</>
+				) : (
+					<>
+						<p className="font-semibold">Connecting you to a human agent…</p>
+						<p className="mt-1 text-xs opacity-80">Please hold — Sewa is transferring your call</p>
+					</>
+				)}
+			</motion.div>
+		</AnimatePresence>
 	);
 }
 
 function AssistantVisualizer({
 	roomLive,
 	showAnalyticsPanel,
-	geminiModelId,
-	geminiModelLabel,
-	modelConfirmedByWorker,
+	phase,
+	agentName,
 }: {
 	roomLive: boolean;
 	showAnalyticsPanel: boolean;
-	geminiModelId?: string;
-	geminiModelLabel?: string;
-	modelConfirmedByWorker: boolean;
+	phase: CallPhase;
+	agentName: string;
 }) {
-	const { state, audioTrack } = useVoiceAssistant();
+	const { state: aiState, audioTrack: aiAudioTrack } = useVoiceAssistant();
 	const remotes = useRemoteParticipants();
-	const waitingForAgent = roomLive && remotes.length === 0;
-	const modelId = (geminiModelId || "").trim();
-	const modelLabel = (geminiModelLabel || "").trim();
-	const showLiveModel = roomLive && (modelId || modelLabel);
-	const displayId = modelId || modelLabel;
+	const micTracks = useTracks([Track.Source.Microphone], { onlySubscribed: true });
+
+	const humanTrack = useMemo(() => {
+		return micTracks.find((t) => (t.participant?.identity || "").startsWith("agent-human-"));
+	}, [micTracks]);
+
+	const humanParticipant = remotes.find((p) => (p.identity || "").startsWith("agent-human-"));
+	const waitingForAgent = roomLive && remotes.length === 0 && phase === "ai_active";
+
+	const auraState = phase === "human_live" ? "speaking" : aiState;
+	const auraTrack =
+		phase === "human_live" ? (humanTrack as Parameters<typeof AgentAudioVisualizerAura>[0]["audioTrack"]) : aiAudioTrack;
+	const auraColor = phase === "human_live" ? "#22C55E" : phase === "handoff_pending" ? "#F59E0B" : "#1FD5F9";
+	const isDev = typeof import.meta !== "undefined" && (import.meta as { env?: { DEV?: boolean } }).env?.DEV;
+
+	const statusLabel =
+		phase === "human_live"
+			? `Speaking with ${agentName || humanParticipant?.name || "human agent"}`
+			: phase === "handoff_pending"
+				? "Transferring to human agent…"
+				: undefined;
 
 	return (
-		<div style={{ width: "100%", maxWidth: showAnalyticsPanel ? 560 : 480, margin: "0 auto" }}>
-			{showLiveModel ? (
-				<div
-					style={{
-						marginBottom: "1rem",
-						padding: "0.55rem 0.85rem",
-						borderRadius: 12,
-						background: "rgba(30, 27, 75, 0.9)",
-						border: "1px solid rgba(165, 180, 252, 0.45)",
-						textAlign: "center",
-					}}
-					aria-live="polite"
-				>
-					<p style={{ margin: 0, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#a5b4fc" }}>
-						{modelConfirmedByWorker ? "Voice model in use (worker)" : "Voice model (session)"}
-					</p>
-					<p
-						style={{
-							margin: "0.25rem 0 0",
-							fontSize: "0.62rem",
-							color: modelConfirmedByWorker ? "#86efac" : "#fcd34d",
-							lineHeight: 1.35,
-						}}
-					>
-						{modelConfirmedByWorker
-							? "Same id passed to Gemini Live in the agent process"
-							: "Updates when the voice worker publishes its model"}
-					</p>
-					<p
-						style={{
-							margin: "0.35rem 0 0",
-							fontSize: "0.82rem",
-							fontWeight: 600,
-							fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-							color: "#e0e7ff",
-							wordBreak: "break-all",
-							lineHeight: 1.35,
-						}}
-						title={displayId}
-					>
-						{displayId}
-					</p>
-					{modelLabel && modelId && modelLabel !== modelId ? (
-						<p style={{ margin: "0.35rem 0 0", fontSize: "0.72rem", opacity: 0.8 }}>
-							{modelLabel}
-						</p>
-					) : null}
+		<div className={`w-full mx-auto ${showAnalyticsPanel ? "max-w-xl" : "max-w-md"}`}>
+			{isDev && waitingForAgent ? (
+				<div className="mb-4 rounded-xl border border-indigo-400/30 bg-slate-900/70 p-4 text-left text-sm text-indigo-100">
+					<p className="font-semibold mb-2">Voice worker not joined (dev only)</p>
+					<p className="text-xs opacity-80">Start the voice agent worker in your bench container.</p>
 				</div>
-			) : null}
-			{waitingForAgent ? (
-				<div
-					style={{
-						marginBottom: "1.25rem",
-						padding: "1rem 1.15rem",
-						borderRadius: 14,
-						background: "rgba(15, 23, 42, 0.75)",
-						border: "1px solid rgba(129, 140, 248, 0.35)",
-						fontSize: "0.88rem",
-						lineHeight: 1.55,
-						textAlign: "left",
-					}}
-				>
-					<p style={{ margin: "0 0 0.65rem", fontWeight: 600, color: "#e0e7ff" }}>
-						You are connected to the room, but the AI voice worker has not joined yet.
-					</p>
-					<p style={{ margin: "0 0 0.5rem", opacity: 0.92 }}>
-						In the <strong>Frappe bench</strong> container (same place you run <code>bench</code>), start the worker:
-					</p>
-					<pre
-						style={{
-							margin: 0,
-							padding: "0.65rem 0.75rem",
-							borderRadius: 8,
-							background: "#0f172a",
-							overflowX: "auto",
-							fontSize: "0.72rem",
-							color: "#a5b4fc",
-						}}
-					>
-						{`export LIVEKIT_URL=ws://livekit:7880
-export LIVEKIT_API_KEY=devkey
-export LIVEKIT_API_SECRET=secret
-export FRAPPE_SITE=learn.localhost
-export FRAPPE_BENCH_ROOT=/workspace/development/frappe-bench
-python -m frappe_ai_core.ai_engine.voice_agent dev`}
-					</pre>
-					<p style={{ margin: "0.65rem 0 0", opacity: 0.85, fontSize: "0.82rem" }}>
-						Use your real site name and bench path if different. Keep this terminal open while you talk.
-					</p>
+			) : waitingForAgent ? (
+				<div className="mb-4 rounded-xl border border-indigo-400/20 bg-slate-900/50 p-4 text-center text-sm text-slate-300">
+					Connecting to Sewa…
 				</div>
 			) : null}
 			<AgentAudioVisualizerAura
 				size={showAnalyticsPanel ? "sm" : "lg"}
-				state={state}
-				audioTrack={audioTrack}
+				state={auraState}
+				audioTrack={auraTrack}
+				color={auraColor}
 				themeMode="dark"
 				style={{ borderRadius: 16, margin: "0 auto" }}
 			/>
-			<StatusIndicator state={state} waitingForAgent={waitingForAgent} />
+			<StatusIndicator state={aiState} waitingForAgent={waitingForAgent} labelOverride={statusLabel} />
 		</div>
 	);
 }
@@ -202,165 +132,114 @@ export default function VoiceRoom({
 	token,
 	serverUrl,
 	roomName,
-	geminiModelLabel,
-	geminiModelId,
 	showAnalyticsPanel = false,
+	isSupportPortal = true,
 	onLeave,
 }: {
 	token: string;
 	serverUrl: string;
 	roomName: string;
+	/** @deprecated Model chip hidden on support portal; kept for API compat */
 	geminiModelLabel?: string;
 	geminiModelId?: string;
-	/** When true, show transcript + ERPNext data cards below the Aura visualizer. */
 	showAnalyticsPanel?: boolean;
+	isSupportPortal?: boolean;
 	onLeave: () => void;
 }) {
 	const [connected, setConnected] = useState(false);
-	const [liveWorkerModel, setLiveWorkerModel] = useState<{ id: string; label: string } | null>(null);
+	const [phase, setPhase] = useState<CallPhase>("ai_active");
+	const [agentName, setAgentName] = useState("");
 
-	const handleWorkerModel = useCallback((id: string, label: string) => {
-		setLiveWorkerModel({ id, label });
+	const handler = useCallback((msg: { payload: Uint8Array }) => {
+		try {
+			const data = JSON.parse(new TextDecoder().decode(msg.payload)) as {
+				status?: string;
+				agent_name?: string;
+			};
+			if (data.status === "requested") setPhase("handoff_pending");
+			if (data.status === "human_joined") {
+				setPhase("human_live");
+				if (data.agent_name) setAgentName(data.agent_name);
+			}
+		} catch {
+			/* ignore */
+		}
 	}, []);
 
 	useEffect(() => {
-		setLiveWorkerModel(null);
+		setPhase("ai_active");
+		setAgentName("");
 	}, [token, roomName]);
 
-	useEffect(() => {
-		return () => setConnected(false);
-	}, [token, serverUrl, roomName]);
+	const shell = isSupportPortal ? SupportAppShell : ({ children }: { children: React.ReactNode }) => (
+		<div className="min-h-dvh flex flex-col bg-gradient-to-br from-slate-900 to-indigo-950 text-slate-100 p-4">
+			{children}
+		</div>
+	);
 
-	const displayModelId = liveWorkerModel?.id || geminiModelId;
-	const displayModelLabel = liveWorkerModel?.label || geminiModelLabel;
-	const modelConfirmedByWorker = Boolean(liveWorkerModel);
+	const Shell = shell;
 
 	return (
-		<div
-			style={{
-				minHeight: "100dvh",
-				display: "flex",
-				flexDirection: "column",
-				background: "linear-gradient(160deg, #0f172a, #312e81)",
-				color: "#e2e8f0",
-				fontFamily: "system-ui, sans-serif",
-				padding: "1rem",
-			}}
-		>
-			<header style={{ textAlign: "center", marginBottom: showAnalyticsPanel ? "0.5rem" : "1rem" }}>
-				<h1 style={{ fontSize: "1.15rem", margin: 0 }}>Session: {roomName}</h1>
-				<p style={{ margin: "0.35rem 0 0", fontSize: "0.85rem", opacity: 0.8 }}>
-					{connected ? "LiveKit room connected" : "Joining LiveKit room…"}
-					{showAnalyticsPanel ? " · ERPNext analytics mode" : ""}
-				</p>
-				{displayModelId || displayModelLabel ? (
-					<div
-						style={{
-							marginTop: "0.65rem",
-							padding: "0.5rem 0.75rem",
-							borderRadius: 10,
-							background: "rgba(15, 23, 42, 0.55)",
-							border: "1px solid rgba(148, 163, 184, 0.25)",
-							maxWidth: 520,
-							marginLeft: "auto",
-							marginRight: "auto",
-						}}
-					>
-						<p style={{ margin: 0, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "#94a3b8" }}>
-							Voice model
-						</p>
-						<p
-							style={{
-								margin: "0.25rem 0 0",
-								fontSize: "0.65rem",
-								color: modelConfirmedByWorker ? "#86efac" : "#fcd34d",
-							}}
-						>
-							{modelConfirmedByWorker
-								? "Confirmed by voice worker (in use)"
-								: "Session default until the agent joins"}
-						</p>
-						<p
-							style={{
-								margin: "0.35rem 0 0",
-								fontSize: "0.8rem",
-								fontWeight: 600,
-								fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-								color: "#c7d2fe",
-								wordBreak: "break-all",
-								lineHeight: 1.35,
-							}}
-							title={displayModelId || displayModelLabel}
-						>
-							{displayModelId || displayModelLabel}
-						</p>
-						{displayModelLabel && displayModelId && displayModelLabel !== displayModelId ? (
-							<p style={{ margin: "0.3rem 0 0", fontSize: "0.75rem", opacity: 0.85 }}>
-								{displayModelLabel}
-							</p>
-						) : null}
-					</div>
-				) : null}
-			</header>
+		<Shell>
+			<div className="flex flex-1 flex-col px-4 pb-6">
+				<div className="text-center py-3">
+					<p className="text-xs uppercase tracking-widest text-emerald-200/60">
+						{phase === "human_live" ? "Live with agent" : phase === "handoff_pending" ? "Handoff" : "AI support"}
+					</p>
+					<h1 className="text-base font-medium text-slate-100 mt-1">
+						{phase === "human_live" ? "Human agent call" : "Voice support session"}
+					</h1>
+				</div>
 
-			<LiveKitRoom
-				token={token}
-				serverUrl={serverUrl}
-				connect
-				audio
-				video={false}
-				data-lk-theme="default"
-				onConnected={() => setConnected(true)}
-				onDisconnected={() => {
-					setConnected(false);
-					onLeave();
-				}}
-				style={{ flex: 1, display: "flex", flexDirection: "column" }}
-			>
-				<LiveVoiceModelSubscriber onModel={handleWorkerModel} />
-				<RoomAudioRenderer />
-				<HandoffBanner />
-				<div
-					style={{
-						flex: 1,
-						display: "flex",
-						flexDirection: showAnalyticsPanel ? "column" : "row",
-						alignItems: "stretch",
-						justifyContent: showAnalyticsPanel ? "flex-start" : "center",
-						overflow: showAnalyticsPanel ? "auto" : "visible",
-						padding: showAnalyticsPanel ? "0 0.5rem" : 0,
+				<LiveKitRoom
+					token={token}
+					serverUrl={serverUrl}
+					connect
+					audio
+					video={false}
+					data-lk-theme="default"
+					onConnected={() => setConnected(true)}
+					onDisconnected={() => {
+						setConnected(false);
+						onLeave();
 					}}
+					className="flex flex-1 flex-col"
 				>
+					<HandoffDataListener onMessage={handler} />
+					<LiveVoiceModelSubscriber onModel={() => {}} />
+					<RoomAudioRenderer />
+					<HandoffBanner phase={phase} agentName={agentName} />
+					<HumanJoinDetector onHumanJoin={(name) => { setPhase("human_live"); setAgentName(name); }} />
 					<div
-						style={{
-							flex: showAnalyticsPanel ? "0 0 auto" : 1,
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-							minHeight: showAnalyticsPanel ? 200 : undefined,
-						}}
+						className={`flex-1 flex ${showAnalyticsPanel ? "flex-col overflow-auto" : "items-center justify-center"}`}
 					>
 						<AssistantVisualizer
 							roomLive={connected}
 							showAnalyticsPanel={showAnalyticsPanel}
-							geminiModelId={displayModelId}
-							geminiModelLabel={displayModelLabel}
-							modelConfirmedByWorker={modelConfirmedByWorker}
+							phase={phase}
+							agentName={agentName}
 						/>
+						{showAnalyticsPanel ? <ChatPanel /> : null}
 					</div>
-					{showAnalyticsPanel ? <ChatPanel /> : null}
-				</div>
-				<div
-					style={{
-						display: "flex",
-						justifyContent: "center",
-						gap: "1rem",
-						padding: "1.5rem 0 calc(1rem + env(safe-area-inset-bottom))",
-					}}
-				>
-					<EndSessionButton />
-				</div>
-			</LiveKitRoom>
-		</div>
+					<div className="flex justify-center pt-6 pb-safe">
+						<EndSessionButton />
+					</div>
+				</LiveKitRoom>
+			</div>
+		</Shell>
 	);
+}
+
+function HandoffDataListener({ onMessage }: { onMessage: (msg: { payload: Uint8Array }) => void }) {
+	useDataChannel("handoff", onMessage);
+	return null;
+}
+
+function HumanJoinDetector({ onHumanJoin }: { onHumanJoin: (name: string) => void }) {
+	const remotes = useRemoteParticipants();
+	useEffect(() => {
+		const human = remotes.find((p) => (p.identity || "").startsWith("agent-human-"));
+		if (human) onHumanJoin(human.name || human.identity.replace("agent-human-", ""));
+	}, [remotes, onHumanJoin]);
+	return null;
 }

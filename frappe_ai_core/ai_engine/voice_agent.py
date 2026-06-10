@@ -118,21 +118,23 @@ async def search_knowledge_base(context: RunContext, query: str) -> str:
 	results = search_articles(kb_name, query, limit=5)
 	if not results:
 		return "No matching articles were found in the knowledge base."
-	return json.dumps(results, ensure_ascii=False)
+	prefix = "Only cite this content; do not infer live account, KYC, or transaction status.\n"
+	return prefix + json.dumps(results, ensure_ascii=False)
 
 
 @function_tool(
 	description=(
-		"Transfer this call to a human agent (warm handoff). Call once when the request is beyond what you "
-		"can resolve from the knowledge base or general help, or when the user asks for a human. "
-		"Provide `reason` (short why), `summary` (what happened so far + what you already tried, in English), "
-		"`customer_request` (what the customer specifically wants), and `suggested_next_step` (a concrete first "
-		"action the human should take to continue). Tell the user you are connecting them first, then call this "
-		"and stop talking."
+		"Transfer this call to a human agent immediately. Call once when the request is beyond the knowledge "
+		"base, needs account action you cannot perform, or is out of scope. REQUIRED: `customer_name` (full "
+		"name) and `esewa_phone` (10-digit registered mobile). Also provide `reason`, `summary` (what happened "
+		"+ what you tried), `customer_request`, and `suggested_next_step`. Announce you are connecting them, "
+		"then call this and stop talking. Do not wait for the customer to confirm."
 	)
 )
 async def transfer_to_human(
 	context: RunContext,
+	customer_name: str = "",
+	esewa_phone: str = "",
 	reason: str = "",
 	summary: str = "",
 	customer_request: str = "",
@@ -167,6 +169,8 @@ async def transfer_to_human(
 					"conversation": conversation_id,
 					"room_name": room_name,
 					"requested_by": sess.user if sess else None,
+					"customer_name": (customer_name or "")[:140],
+					"esewa_phone": (esewa_phone or "")[:20],
 					"reason": (reason or "")[:500],
 					"summary": summary or "",
 					"customer_request": customer_request or "",
@@ -488,7 +492,7 @@ async def frappe_ai_voice_job(ctx: agents.JobContext):
 	session.on("conversation_item_added", _on_conversation_item)
 
 	def _on_participant_connected(participant) -> None:
-		"""When a human agent joins, the AI goes quiet (stops listening + speaking)."""
+		"""When a human agent joins, mute the AI worker (no listen/speak). Worker stays in room for lifecycle only."""
 		identity = getattr(participant, "identity", "") or ""
 		if not identity.startswith("agent-human-"):
 			return
@@ -501,6 +505,25 @@ async def frappe_ai_voice_job(ctx: agents.JobContext):
 			session.output.set_audio_enabled(False)
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), "frappe_ai_core handoff go-quiet")
+		agent_name = getattr(participant, "name", None) or identity.replace("agent-human-", "")
+		try:
+			import asyncio
+
+			job_ctx = get_job_context()
+			loop = asyncio.get_running_loop()
+			loop.create_task(
+				_publish_data(
+					job_ctx.room,
+					"handoff",
+					{
+						"status": "human_joined",
+						"agent_name": agent_name,
+						"message": "A human agent is now live on the call.",
+					},
+				)
+			)
+		except Exception:
+			pass
 		try:
 			_ensure_frappe()
 			frappe.db.set_value(

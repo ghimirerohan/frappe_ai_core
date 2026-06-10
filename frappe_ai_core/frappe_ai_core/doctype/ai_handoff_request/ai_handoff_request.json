@@ -13,6 +13,8 @@
   "requested_by",
   "assigned_agent",
   "section_break_context",
+  "customer_name",
+  "esewa_phone",
   "reason",
   "customer_request",
   "summary",
@@ -75,6 +77,18 @@
    "fieldname": "section_break_context",
    "fieldtype": "Section Break",
    "label": "Context for the human agent"
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name"
+  },
+  {
+   "fieldname": "esewa_phone",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Registered Mobile (eSewa)"
   },
   {
    "fieldname": "reason",

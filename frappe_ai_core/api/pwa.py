@@ -18,15 +18,13 @@ import frappe
 from werkzeug.wrappers import Response
 
 _ICON = "/assets/frappe_ai_core/images/frappe-ai-core.svg"
-# Customer support portal is the primary install/launch surface.
-_START_URL = "/support"
 _SCOPE = "/"
 
-_MANIFEST = {
-	"name": "Customer Support",
+_MANIFEST_CUSTOMER = {
+	"name": "eSewa Support",
 	"short_name": "Support",
-	"description": "Talk to the AI support agent and get connected to a human when you need one.",
-	"start_url": _START_URL,
+	"description": "Talk to the eSewa support assistant and get connected to a human when you need one.",
+	"start_url": "/support",
 	"scope": _SCOPE,
 	"display": "standalone",
 	"orientation": "portrait",
@@ -38,17 +36,34 @@ _MANIFEST = {
 	],
 }
 
+_MANIFEST_AGENT = {
+	"name": "eSewa Agent Console",
+	"short_name": "Agent",
+	"description": "Human agent console for eSewa voice support handoffs.",
+	"start_url": "/support/agent",
+	"scope": _SCOPE,
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "#0f172a",
+	"theme_color": "#1e3a5f",
+	"icons": [
+		{"src": _ICON, "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+		{"src": _ICON, "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"},
+	],
+}
+
 _SERVICE_WORKER = """// AI Voice Room service worker (served by frappe_ai_core.api.pwa.service_worker)
-const CACHE = 'ai-voice-room-v2';
-const SHELL = ['/support', '/ai-room'];
-// Routes this SW is allowed to control; everything else falls through to the network.
+const CACHE = 'ai-voice-room-v3';
+const SHELL = ['/support', '/support/agent', '/ai-room'];
 const APP_ROUTES = ['/support', '/ai-room', '/ai_room'];
 
 function isAppRoute(pathname) {
   return APP_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
 }
 function shellFor(pathname) {
-  return pathname.startsWith('/ai-room') || pathname.startsWith('/ai_room') ? '/ai-room' : '/support';
+  if (pathname.startsWith('/support/agent')) return '/support/agent';
+  if (pathname.startsWith('/ai-room') || pathname.startsWith('/ai_room')) return '/ai-room';
+  return '/support';
 }
 
 self.addEventListener('install', (event) => {
@@ -67,10 +82,8 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  // Never cache LiveKit, websockets, or API calls — they must hit the network.
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io')) return;
 
-  // App shell assets: cache-first (hashed Vite bundles are immutable).
   if (url.pathname.startsWith('/assets/frappe_ai_core/ai_room/')) {
     event.respondWith(
       caches.open(CACHE).then((cache) =>
@@ -83,7 +96,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // SPA navigation (only our portal routes): network-first, fall back to cached shell when offline.
   if (req.mode === 'navigate' && isAppRoute(url.pathname)) {
     const shell = shellFor(url.pathname);
     event.respondWith(
@@ -100,7 +112,14 @@ self.addEventListener('fetch', (event) => {
 
 @frappe.whitelist(allow_guest=True)
 def manifest() -> Response:
-	resp = Response(json.dumps(_MANIFEST), content_type="application/manifest+json")
+	resp = Response(json.dumps(_MANIFEST_CUSTOMER), content_type="application/manifest+json")
+	resp.headers["Cache-Control"] = "public, max-age=3600"
+	return resp
+
+
+@frappe.whitelist(allow_guest=True)
+def manifest_agent() -> Response:
+	resp = Response(json.dumps(_MANIFEST_AGENT), content_type="application/manifest+json")
 	resp.headers["Cache-Control"] = "public, max-age=3600"
 	return resp
 

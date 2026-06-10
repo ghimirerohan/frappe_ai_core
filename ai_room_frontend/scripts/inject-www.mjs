@@ -29,11 +29,11 @@ const out = `<!doctype html>
 			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no"
 		/>
 		<title>AI Voice Room</title>
-		<meta name="theme-color" content="#312e81" />
+		<meta name="theme-color" content="{{ theme_color }}" />
 		<meta name="mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-title" content="AI Voice" />
-		<link rel="manifest" href="/api/method/frappe_ai_core.api.pwa.manifest" />
+		<meta name="apple-mobile-web-app-title" content="{{ pwa_app_title }}" />
+		<link rel="manifest" href="{{ pwa_manifest_url }}" />
 		<link rel="apple-touch-icon" href="/assets/frappe_ai_core/images/frappe-ai-core.svg" />
 		<script type="module" crossorigin src="${js}"></script>
 		<link rel="stylesheet" crossorigin href="${css}" />
@@ -41,6 +41,12 @@ const out = `<!doctype html>
 	<body>
 		<div id="root"></div>
 		<script>
+			window.__PORTAL_BOOT__ = {
+				user: "{{ user }}",
+				is_guest: {{ "true" if is_guest else "false" }},
+				roles: {{ roles | tojson }},
+				portal_mode: "{{ portal_mode }}"
+			};
 			window.csrf_token = "{{ csrf_token }}";
 		</script>
 	</body>

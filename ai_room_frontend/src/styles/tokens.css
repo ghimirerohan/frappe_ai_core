@@ -1,0 +1,10 @@
+@theme {
+	--color-esewa-green: #16a34a;
+	--color-esewa-green-dark: #14532d;
+	--color-esewa-green-light: #22c55e;
+	--color-esewa-bg: #052e16;
+	--color-agent-slate: #1e293b;
+	--color-agent-blue: #1e3a5f;
+	--color-agent-accent: #3b82f6;
+	--font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}

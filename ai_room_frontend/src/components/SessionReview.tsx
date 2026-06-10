@@ -13,6 +13,8 @@ type Evaluation = {
 type Handoff = {
 	name?: string;
 	status?: string;
+	customer_name?: string;
+	esewa_phone?: string;
 	reason?: string;
 	summary?: string;
 	customer_request?: string;
@@ -203,6 +205,12 @@ export default function SessionReview({
 						{data.handoff ? (
 							<div style={card}>
 								<div style={{ fontWeight: 600, marginBottom: 8 }}>Human handoff</div>
+								{data.handoff.customer_name || data.handoff.esewa_phone ? (
+									<p style={{ margin: "0 0 0.5rem" }}>
+										<strong>Customer:</strong>{" "}
+										{[data.handoff.customer_name, data.handoff.esewa_phone].filter(Boolean).join(" · ")}
+									</p>
+								) : null}
 								{data.handoff.reason ? (
 									<p style={{ margin: "0 0 0.5rem" }}>
 										<strong>Reason:</strong> {data.handoff.reason}

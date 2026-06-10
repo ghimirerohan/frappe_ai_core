@@ -352,6 +352,8 @@ def _handoff_for_session(session_name: str) -> dict[str, Any] | None:
 		[
 			"name",
 			"status",
+			"customer_name",
+			"esewa_phone",
 			"reason",
 			"summary",
 			"customer_request",
@@ -664,13 +666,13 @@ def build_agent_instructions(session_name: str, *, erpnext_mcp_hint: bool = Fals
 
 ---
 ## Human handoff (transfer to a real person)
-First always try to resolve the request yourself using the knowledge base and sensible general problem-solving. Transfer only when the request is genuinely beyond your scope or the knowledge base, needs account/document/identity action you cannot perform, or the user explicitly asks for a human.
+NEVER claim to check live account status, KYC state, transaction records, or backend systems — you have no such access. Answer ONLY from the knowledge base via `search_knowledge_base`. If the KB has no answer, or the request needs human account action, transfer IMMEDIATELY without asking the customer for permission.
 
-When you do transfer, call the tool `transfer_to_human` exactly once. Before calling it, briefly tell the user you are connecting them. Fill in all of:
-- `reason`: short why this needs a human.
-- `summary`: what has happened so far and what you already tried (in English).
-- `customer_request`: what the customer specifically wants done.
-- `suggested_next_step`: a concrete first action the human should take to continue (the starting point).
+Before transfer, collect and confirm: full name (`customer_name`) and eSewa registered mobile (`esewa_phone`, 10 digits).
+
+Call `transfer_to_human` exactly once. Briefly tell the user you are connecting them, then call the tool. Fill in all of:
+- `customer_name`, `esewa_phone` (required)
+- `reason`, `summary`, `customer_request`, `suggested_next_step`
 After calling the tool, stop talking and let the human take over.
 """
 	_mcp_block = ""
