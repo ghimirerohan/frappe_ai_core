@@ -5,6 +5,8 @@ import {
 	useRoomContext,
 } from "@livekit/components-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getMicrophoneBlockMessage } from "@/lib/mediaAccess";
+import { csrf } from "@/utils/csrf";
 
 type HandoffRow = {
 	name: string;
@@ -33,10 +35,6 @@ type ActiveCall = {
 };
 
 const POLL_MS = 4000;
-
-function csrf(): string {
-	return window.csrf_token || "";
-}
 
 const cardStyle: React.CSSProperties = {
 	background: "rgba(15, 23, 42, 0.7)",
@@ -112,6 +110,11 @@ export default function AgentConsole() {
 	const accept = useCallback(async (name: string) => {
 		setAccepting(name);
 		setError(null);
+		const micBlock = getMicrophoneBlockMessage();
+		if (micBlock) {
+			setError(micBlock);
+			return;
+		}
 		try {
 			const res = await fetch(
 				`/api/method/frappe_ai_core.api.handoff.accept_handoff?handoff_name=${encodeURIComponent(name)}`,

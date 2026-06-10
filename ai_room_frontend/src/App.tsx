@@ -5,12 +5,8 @@ import CostDashboard from "./components/CostDashboard";
 import SessionReview from "./components/SessionReview";
 import SessionReviewList from "./components/SessionReviewList";
 import VoiceRoom from "./components/VoiceRoom";
-
-declare global {
-	interface Window {
-		csrf_token?: string;
-	}
-}
+import { canAccessMicrophone, getMicrophoneBlockMessage } from "./lib/mediaAccess";
+import { csrf } from "./utils/csrf";
 
 type AgentTemplateRow = {
 	name: string;
@@ -49,6 +45,7 @@ export default function App() {
 	const [personaType, setPersonaType] = useState<string | null>(null);
 	const [conversationId, setConversationId] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [mediaBlock, setMediaBlock] = useState<string | null>(() => getMicrophoneBlockMessage());
 	const [lanWarning, setLanWarning] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 
@@ -138,9 +135,19 @@ export default function App() {
 		[applyTemplateToUrl],
 	);
 
+	useEffect(() => {
+		setMediaBlock(getMicrophoneBlockMessage());
+	}, []);
+
 	const start = useCallback(async () => {
 		setError(null);
 		setLanWarning(null);
+		const micBlock = getMicrophoneBlockMessage();
+		if (micBlock) {
+			setMediaBlock(micBlock);
+			setError(micBlock);
+			return;
+		}
 		setLoading(true);
 		try {
 			const params = new URLSearchParams();
@@ -154,7 +161,7 @@ export default function App() {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
-						"X-Frappe-CSRF-Token": window.csrf_token || "",
+						"X-Frappe-CSRF-Token": csrf(),
 					},
 				},
 			);
@@ -203,6 +210,26 @@ export default function App() {
 	}
 
 	if (token && serverUrl && roomName) {
+		if (!canAccessMicrophone()) {
+			return (
+				<div
+					style={{
+						minHeight: "100dvh",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						padding: "1.5rem",
+						fontFamily: "system-ui, sans-serif",
+						background: "#0f172a",
+						color: "#fecaca",
+					}}
+				>
+					<p style={{ maxWidth: 520, lineHeight: 1.55, textAlign: "center" }}>
+						{mediaBlock || getMicrophoneBlockMessage()}
+					</p>
+				</div>
+			);
+		}
 		if (personaType === "Business Analyst") {
 			return (
 				<AnalyticsLayout
@@ -298,6 +325,19 @@ export default function App() {
 					</p>
 					{templatesError ? (
 						<p style={{ color: "#fca5a5", marginBottom: "0.75rem", fontSize: "0.9rem" }}>{templatesError}</p>
+					) : null}
+					{mediaBlock ? (
+						<p
+							style={{
+								color: "#fcd34d",
+								marginBottom: "0.75rem",
+								fontSize: "0.85rem",
+								lineHeight: 1.45,
+								textAlign: "left",
+							}}
+						>
+							{mediaBlock}
+						</p>
 					) : null}
 					<button
 						type="button"
@@ -400,6 +440,20 @@ export default function App() {
 			{templatesError ? (
 				<p style={{ color: "#fca5a5", marginBottom: "0.75rem", maxWidth: 400, textAlign: "center", fontSize: "0.9rem" }}>
 					{templatesError}
+				</p>
+			) : null}
+			{mediaBlock ? (
+				<p
+					style={{
+						color: "#fcd34d",
+						marginBottom: "0.75rem",
+						maxWidth: 400,
+						fontSize: "0.85rem",
+						lineHeight: 1.45,
+						textAlign: "left",
+					}}
+				>
+					{mediaBlock}
 				</p>
 			) : null}
 

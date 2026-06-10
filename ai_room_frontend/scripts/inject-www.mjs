@@ -41,7 +41,7 @@ const out = `<!doctype html>
 	<body>
 		<div id="root"></div>
 		<script>
-			window.csrf_token = "{{ frappe.session.csrf_token or '' }}";
+			window.csrf_token = "{{ csrf_token }}";
 		</script>
 	</body>
 </html>

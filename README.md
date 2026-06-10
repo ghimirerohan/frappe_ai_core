@@ -17,7 +17,7 @@ bench pip install 'livekit-agents[google,mcp]>=1.4.0'
 
 After install, set **Gemini API Key** (and ERPNext MCP credentials if using the analytics agent) in **AI Global Settings** (Desk).
 
-For **Gemini Live Model**, use a documented **Live API** voice id. Default is **`gemini-2.5-flash-native-audio-preview-12-2025`** (matches `livekit-plugins-google`). You can try **`gemini-3.1-flash-live-preview`** if your key accepts it; WebSocket **1007** often means the model id is not valid for your API/SDK combo. Do not put **Flash-Lite** here (text only; use **Judge Model**). Unknown ids normalize to the default.
+For **Gemini Live Model**, default is **`gemini-3.1-flash-live-preview`** (requires `livekit-agents[google]>=1.5.17` / `livekit-plugins-google>=1.5.17`). Fallback: `gemini-2.5-flash-native-audio-preview-12-2025`. WebSocket **1007** on older `livekit-plugins-google` (e.g. 1.5.1) — upgrade with `bench pip install 'livekit-agents[google]>=1.5.17'`. Do not put **Flash-Lite** here (text only; use **Judge Model**).
 
 ## Voice agent (worker)
 
@@ -140,7 +140,9 @@ So: **Frappe in `frappe-1`**, **LiveKit + voice-agent as separate services** (or
 Other devices cannot resolve `development.localhost`. Use your machine’s **LAN IP** (e.g. `192.168.1.42`).
 
 1. **Ports** — Docker must publish **8000** (Frappe) and **7880** (+ UDP **59100–59200**) on `0.0.0.0` (default in `.devcontainer/docker-compose.yml`).
-2. **Open the site via IP** — e.g. `http://192.168.1.42:8000/support` (customer) and `http://192.168.1.42:8000/support/agent` (rep).
+**Microphone on LAN:** Browsers block the mic on **`http://192.168.x.x`** (`getUserMedia` undefined). Use **`https://192.168.x.x:8000`**, **`http://localhost:8000`** on this machine only, or Chrome **Insecure origins treated as secure** (dev).
+
+2. **Open the site via IP** — prefer `https://192.168.1.42:8000/support` (customer) and `…/support/agent` (rep). Plain HTTP on a LAN IP cannot use the microphone.
 3. **LiveKit URL** — when the browser uses a LAN IP, session/handoff APIs **auto-rewrite** `ws://localhost:7880` → `ws://192.168.1.42:7880`. No Desk change needed.
 4. **Print URLs** — `bench --site development.localhost execute frappe_ai_core.demo.esewa_demo_prep.run` lists LAN links, or call `frappe_ai_core.api.session.get_lan_access_urls` while logged in.
 5. **Voice media across devices** — if WebRTC connects but has no audio, set on the host before starting Compose:
@@ -156,8 +158,21 @@ Other devices cannot resolve `development.localhost`. Use your machine’s **LAN
 
 | Symptom | Fix |
 |---------|-----|
-| Gemini `1007 invalid argument` in voice worker | Restart the worker after upgrading `frappe_ai_core` (do not pass `language=ne` to Gemini Live native audio — language hints are prompt-only). |
+| Gemini `1007 invalid argument` in voice worker | **Not a LAN issue** — upgrade `livekit-plugins-google` to **>=1.5.17** (`bench pip install 'livekit-agents[google]>=1.5.17'`), confirm **Gemini Live Model** is `gemini-3.1-flash-live-preview`, restart voice worker. Do not pass `language=ne` to native audio (prompt-only). |
 | Room connects but no AI greeting / timeout on LAN | Set **`LIVEKIT_NODE_IP`** to your host Wi‑Fi IP and restart LiveKit (see step 5 above). Without this, WebRTC advertises Docker-internal IPs (172.x) that phones cannot reach. |
-| `development.localhost` works, `192.168.x.x` does not | Expected until `LIVEKIT_NODE_IP` is set — localhost uses loopback ICE paths; LAN devices need the real host IP. |
+| `getUserMedia` undefined / `pc connection` on `http://192.168.x.x` | **Secure context** — use HTTPS on LAN, `http://localhost` on same machine, or Chrome insecure-origin flag (dev). Not fixable with `LIVEKIT_NODE_IP` alone. |
+| `development.localhost` works, `192.168.x.x` does not | After HTTPS/mic works: set **`LIVEKIT_NODE_IP`** — localhost uses loopback ICE paths; LAN devices need the real host IP. |
 
 After starting a call from a LAN IP, the session API returns `lan_warnings` with the exact `export LIVEKIT_NODE_IP=…` command.
+
+
+https://rhyme-safely-eatable.ngrok-free.dev 
+
+cd /workspace/development/frappe-bench
+export FRAPPE_SITE=development.localhost
+export FRAPPE_BENCH_ROOT=/workspace/development/frappe-bench
+export LIVEKIT_URL=ws://livekit:7880
+export LIVEKIT_API_KEY=devkey
+export LIVEKIT_API_SECRET=secret
+export LIVEKIT_PUBLIC_URL=wss://rhyme-safely-eatable.ngrok-free.dev   # same as Desk
+python -m frappe_ai_core.ai_engine.voice_agent dev

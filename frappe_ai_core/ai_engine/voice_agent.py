@@ -357,6 +357,14 @@ async def frappe_ai_voice_job(ctx: agents.JobContext):
 
 	full_prompt, model_name = build_agent_instructions(room_name)
 	settings = frappe.get_single("AI Global Settings")
+	raw_model = (settings.gemini_model or "").strip()
+	if raw_model and raw_model != model_name:
+		frappe.logger("frappe_ai_core").info(
+			"Gemini Live model normalized for voice worker: %s -> %s (session %s)",
+			raw_model,
+			model_name,
+			room_name,
+		)
 	template_name = frappe.db.get_value("AI Session", room_name, "template")
 	language_mode = ""
 	if template_name:

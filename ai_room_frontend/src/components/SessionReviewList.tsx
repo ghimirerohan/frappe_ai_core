@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { csrf } from "@/utils/csrf";
 
 type SessionRow = {
 	name: string;
@@ -39,7 +40,7 @@ export default function SessionReviewList() {
 		try {
 			const res = await fetch("/api/method/frappe_ai_core.api.session.list_session_reviews?limit=50", {
 				credentials: "include",
-				headers: { "X-Frappe-CSRF-Token": window.csrf_token || "" },
+				headers: { "X-Frappe-CSRF-Token": csrf() },
 			});
 			const json = (await res.json()) as { message?: SessionRow[]; exc?: string };
 			if (!res.ok || json.exc) throw new Error(typeof json.exc === "string" ? json.exc : res.statusText);

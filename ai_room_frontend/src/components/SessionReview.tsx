@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { csrf } from "@/utils/csrf";
 
 type Evaluation = {
 	score?: number;
@@ -68,7 +69,7 @@ export default function SessionReview({
 		try {
 			const res = await fetch(
 				`/api/method/frappe_ai_core.api.session.get_session_status?session_name=${encodeURIComponent(sessionName)}`,
-				{ credentials: "include", headers: { "X-Frappe-CSRF-Token": window.csrf_token || "" } },
+				{ credentials: "include", headers: { "X-Frappe-CSRF-Token": csrf() } },
 			);
 			const json = (await res.json()) as { message?: SessionReviewData; exc?: string };
 			if (!res.ok || json.exc) throw new Error(typeof json.exc === "string" ? json.exc : res.statusText);

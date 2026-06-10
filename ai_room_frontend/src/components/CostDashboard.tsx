@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-declare global {
-	interface Window {
-		csrf_token?: string;
-	}
-}
+import { csrf } from "@/utils/csrf";
 import {
 	Bar,
 	BarChart,
@@ -142,7 +137,7 @@ export default function CostDashboard() {
 			}
 			const res = await fetch(`/api/method/frappe_ai_core.api.costing.get_cost_summary?${params.toString()}`, {
 				credentials: "include",
-				headers: { "X-Frappe-CSRF-Token": window.csrf_token || "" },
+				headers: { "X-Frappe-CSRF-Token": csrf() },
 			});
 			const json = (await res.json()) as { message?: CostSummary; exc?: string; _server_messages?: string };
 			if (!res.ok || json.exc) {

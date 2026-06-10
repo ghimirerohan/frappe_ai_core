@@ -71,8 +71,8 @@
    "label": "Models"
   },
   {
-   "default": "gemini-2.5-flash-native-audio-preview-12-2025",
-   "description": "Gemini **Live API** voice model id (Google AI). Recommended: gemini-2.5-flash-native-audio-preview-12-2025 (matches livekit-plugins-google). Optional: gemini-3.1-flash-live-preview if your API key accepts it. Do not use **Flash-Lite** here (text only; use Judge Model). Wrong ids fall back to the default.",
+   "default": "gemini-3.1-flash-live-preview",
+   "description": "Gemini **Live API** voice model id (Google AI). Default: gemini-3.1-flash-live-preview (requires livekit-plugins-google>=1.5.17). Fallback: gemini-2.5-flash-native-audio-preview-12-2025. Do not use **Flash-Lite** here (text only; use Judge Model). Unknown ids normalize to the default.",
    "fieldname": "gemini_model",
    "fieldtype": "Data",
    "label": "Gemini Live Model"

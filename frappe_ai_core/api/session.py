@@ -22,8 +22,7 @@ from frappe_ai_core.utils.network import get_lan_access_info, get_livekit_lan_wa
 # https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-native-audio-preview-12-2025
 # https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-live-preview
 #
-# livekit-plugins-google only types/validates 2.5 native-audio preview ids for the Gemini API;
-# gemini-3.1-flash-live-preview can return WebSocket 1007 with some keys/SDK combos — default 2.5.
+# Default Live voice model — gemini-3.1-flash-live-preview (requires livekit-plugins-google>=1.5.17).
 _GEMINI_LIVE_VOICE_MODELS = frozenset(
 	{
 		"gemini-3.1-flash-live-preview",
@@ -32,11 +31,10 @@ _GEMINI_LIVE_VOICE_MODELS = frozenset(
 	}
 )
 _GEMINI_LIVE_MODEL_CANONICAL = {x.lower(): x for x in _GEMINI_LIVE_VOICE_MODELS}
-# Common Desk typos / shorthand → official id
+_DEFAULT_GEMINI_LIVE_MODEL = "gemini-3.1-flash-live-preview"
 _GEMINI_LIVE_MODEL_ALIASES: dict[str, str] = {
 	"gemini-3.1-flash-live": "gemini-3.1-flash-live-preview",
 }
-_DEFAULT_GEMINI_LIVE_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"
 
 
 def normalize_gemini_live_model(model: str | None) -> str:

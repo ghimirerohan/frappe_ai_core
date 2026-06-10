@@ -81,7 +81,7 @@ def _ensure_global_settings_defaults():
 		"livekit_url": "ws://localhost:7880",
 		"livekit_internal_url": "ws://livekit:7880",
 		"livekit_api_key": "devkey",
-		"gemini_model": "gemini-2.5-flash-native-audio-preview-12-2025",
+		"gemini_model": "gemini-3.1-flash-live-preview",
 		"judge_model": "gemini-3.1-flash-lite-preview",
 		"livekit_agent_name": "frappe-ai-voice",
 		"analytics_agent_name": "frappe-ai-analytics",

@@ -183,18 +183,46 @@ def public_livekit_url(settings) -> str:
 	return lk_url
 
 
+def _is_lan_ipv4_host(host: str) -> bool:
+	parts = host.split(".")
+	if len(parts) != 4:
+		return False
+	try:
+		return all(0 <= int(p) <= 255 for p in parts)
+	except ValueError:
+		return False
+
+
+def get_microphone_secure_context_warnings() -> list[str]:
+	"""Browsers block getUserMedia on http://192.168.x.x — HTTPS or localhost required."""
+	req_host = get_request_host()
+	if not req_host or is_loopback_or_local_site_host(req_host):
+		return []
+	if not _is_lan_ipv4_host(req_host):
+		return []
+	port = get_webserver_port()
+	return [
+		f"Microphone/voice is blocked on http://{req_host}:{port} — browsers require HTTPS for LAN sites "
+		f"(localhost is OK). Use https://{req_host}:{port}, test on http://localhost:{port} on this machine, "
+		f"or add the HTTP origin to Chrome's insecure-origin flag (dev only).",
+	]
+
+
 def get_livekit_lan_warnings() -> list[str]:
 	"""Hints when the browser opened the site via a LAN IP (WebRTC needs LIVEKIT_NODE_IP)."""
 	req_host = get_request_host()
 	if not req_host or is_loopback_or_local_site_host(req_host):
 		return []
-	return [
-		f"Voice over LAN requires LiveKit to advertise your host IP. "
-		f"On the machine running Docker, run: export LIVEKIT_NODE_IP={req_host} "
-		f"then restart the livekit container.",
-		f"Browsers on other devices should use ws://{req_host}:7880 "
-		f"(auto-rewritten when you open http://{req_host}:{get_webserver_port()}).",
-	]
+	port = get_webserver_port()
+	warnings = list(get_microphone_secure_context_warnings())
+	warnings.extend(
+		[
+			f"After HTTPS/mic works: set export LIVEKIT_NODE_IP={req_host} and restart the livekit container "
+			f"so WebRTC works on other devices (fixes 'could not establish pc connection').",
+			f"LiveKit WebSocket is auto-rewritten to ws://{req_host}:7880 when you open http://{req_host}:{port}.",
+		]
+	)
+	return warnings
 
 
 def get_lan_access_info() -> dict[str, Any]:
