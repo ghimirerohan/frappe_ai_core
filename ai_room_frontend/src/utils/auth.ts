@@ -9,7 +9,7 @@ export type PortalBoot = {
 
 declare global {
 	interface Window {
-		__PORTAL_BOOT__?: PortalBoot;
+		PORTAL_BOOT?: PortalBoot;
 	}
 }
 
@@ -18,7 +18,7 @@ const ROLE_VOICE_MANAGER = "AI Voice Manager";
 const ROLE_SYSTEM_MANAGER = "System Manager";
 
 export function getPortalBoot(): PortalBoot {
-	const boot = window.__PORTAL_BOOT__;
+	const boot = window.PORTAL_BOOT;
 	if (boot) return boot;
 	return { user: "Guest", is_guest: true, roles: [], portal_mode: inferPortalMode() };
 }

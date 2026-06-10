@@ -41,12 +41,7 @@ const out = `<!doctype html>
 	<body>
 		<div id="root"></div>
 		<script>
-			window.__PORTAL_BOOT__ = {
-				user: "{{ user }}",
-				is_guest: {{ "true" if is_guest else "false" }},
-				roles: {{ roles | tojson }},
-				portal_mode: "{{ portal_mode }}"
-			};
+			window.PORTAL_BOOT = {{ portal_boot_json }};
 			window.csrf_token = "{{ csrf_token }}";
 		</script>
 	</body>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from urllib.parse import quote
 
 import frappe
@@ -34,10 +35,17 @@ def apply_portal_context(context) -> None:
 	if is_guest and path in _guest_redirect_paths():
 		frappe.redirect(f"/login?redirect-to={quote(frappe.request.path or '/support', safe='')}")
 
+	roles = frappe.get_roles() if not is_guest else []
 	context.user = frappe.session.user
 	context.is_guest = is_guest
-	context.roles = frappe.get_roles() if not is_guest else []
+	context.roles = roles
 	context.portal_mode = mode
+	# Pre-serialized for www template — avoids Jinja inline logic and must not contain ".__"
+	# (Frappe safe_render rejects that substring; e.g. window.__FOO__ breaks the page).
+	context.portal_boot_json = json.dumps(
+		{"user": frappe.session.user, "is_guest": is_guest, "roles": roles, "portal_mode": mode},
+		separators=(",", ":"),
+	)
 
 	if mode == "agent":
 		context.pwa_manifest_url = "/api/method/frappe_ai_core.api.pwa.manifest_agent"

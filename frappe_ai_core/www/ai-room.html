@@ -13,18 +13,13 @@
 		<meta name="apple-mobile-web-app-title" content="{{ pwa_app_title }}" />
 		<link rel="manifest" href="{{ pwa_manifest_url }}" />
 		<link rel="apple-touch-icon" href="/assets/frappe_ai_core/images/frappe-ai-core.svg" />
-		<script type="module" crossorigin src="/assets/frappe_ai_core/ai_room/assets/index-DxWcP_OU.js"></script>
+		<script type="module" crossorigin src="/assets/frappe_ai_core/ai_room/assets/index-C2xFAgcL.js"></script>
 		<link rel="stylesheet" crossorigin href="/assets/frappe_ai_core/ai_room/assets/index-j7kwDq4w.css" />
 	</head>
 	<body>
 		<div id="root"></div>
 		<script>
-			window.__PORTAL_BOOT__ = {
-				user: "{{ user }}",
-				is_guest: {{ "true" if is_guest else "false" }},
-				roles: {{ roles | tojson }},
-				portal_mode: "{{ portal_mode }}"
-			};
+			window.PORTAL_BOOT = {{ portal_boot_json }};
 			window.csrf_token = "{{ csrf_token }}";
 		</script>
 	</body>
