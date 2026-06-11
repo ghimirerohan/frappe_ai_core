@@ -58,10 +58,12 @@ export default function SessionReview({
 	sessionName,
 	backHref = "/support",
 	backLabel = "← Back to support",
+	heading = "Call summary",
 }: {
 	sessionName: string;
 	backHref?: string;
 	backLabel?: string;
+	heading?: string;
 }) {
 	const [data, setData] = useState<SessionReviewData | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -124,7 +126,7 @@ export default function SessionReview({
 					</a>
 				</p>
 
-				<h1 style={{ fontSize: "1.45rem", margin: "0 0 0.35rem" }}>Call summary</h1>
+				<h1 style={{ fontSize: "1.45rem", margin: "0 0 0.35rem" }}>{heading}</h1>
 				<p style={{ margin: "0 0 1.25rem", opacity: 0.75, fontSize: "0.88rem" }}>
 					{data?.template_label || data?.template || "Support session"}
 					{data?.name ? ` · ${data.name}` : ""}

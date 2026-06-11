@@ -6,6 +6,7 @@ import { PortalGate } from "./components/PortalGate";
 import SessionReview from "./components/SessionReview";
 import SessionReviewList from "./components/SessionReviewList";
 import VoiceRoom from "./components/VoiceRoom";
+import { InterviewAppShell } from "./components/layout/InterviewAppShell";
 import { SupportAppShell } from "./components/layout/SupportAppShell";
 import { Button } from "./components/ui/Button";
 import { canAccessMicrophone, getMicrophoneBlockMessage } from "./lib/mediaAccess";
@@ -32,7 +33,8 @@ export default function App() {
 	const isCostRoute = mode === "cost" || /\/cost$/.test(path);
 	const isReviewRoute = /\/review$/.test(path);
 	const isReviewsListRoute = /\/reviews$/.test(path);
-	const isSupportPortal = path === "/support" || path.startsWith("/support");
+	const isInterviewPortal = path === "/interview" || path.startsWith("/interview");
+	const isSupportPortal = !isInterviewPortal && (path === "/support" || path.startsWith("/support"));
 	const reviewSessionFromUrl = qs.get("session") || undefined;
 
 	const [token, setToken] = useState<string | null>(null);
@@ -44,7 +46,6 @@ export default function App() {
 	const [conversationId, setConversationId] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [mediaBlock, setMediaBlock] = useState<string | null>(() => getMicrophoneBlockMessage());
-	const [lanWarning, setLanWarning] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 
 	const [templates, setTemplates] = useState<AgentTemplateRow[]>([]);
@@ -62,15 +63,15 @@ export default function App() {
 			setGeminiModelId(null);
 			setPersonaType(null);
 			setConversationId(null);
-			if (sessionId && isSupportPortal) {
+			if (sessionId && (isSupportPortal || isInterviewPortal)) {
 				setReviewSession(sessionId);
 				const u = new URL(window.location.href);
-				u.pathname = "/support/review";
+				u.pathname = isInterviewPortal ? "/interview/review" : "/support/review";
 				u.searchParams.set("session", sessionId);
 				window.history.replaceState({}, "", u);
 			}
 		},
-		[isSupportPortal],
+		[isSupportPortal, isInterviewPortal],
 	);
 
 	useEffect(() => {
@@ -103,13 +104,16 @@ export default function App() {
 		let pick: string;
 		if (validUrl) {
 			pick = fromUrl!;
+		} else if (isInterviewPortal) {
+			// Interview portal: the candidate picks a role explicitly — never auto-select.
+			return;
 		} else if (isSupportPortal && templates.some((t) => t.name === SUPPORT_DEFAULT_TEMPLATE)) {
 			pick = SUPPORT_DEFAULT_TEMPLATE;
 		} else {
 			pick = templates[0]!.name;
 		}
 		setSelectedTemplateName(pick);
-	}, [templatesLoading, templates, templateFromUrl, selectedTemplateName, isSupportPortal]);
+	}, [templatesLoading, templates, templateFromUrl, selectedTemplateName, isSupportPortal, isInterviewPortal]);
 
 	const applyTemplateToUrl = useCallback((name: string) => {
 		const u = new URL(window.location.href);
@@ -132,7 +136,6 @@ export default function App() {
 
 	const start = useCallback(async () => {
 		setError(null);
-		setLanWarning(null);
 		const micBlock = getMicrophoneBlockMessage();
 		if (micBlock) {
 			setMediaBlock(micBlock);
@@ -154,7 +157,6 @@ export default function App() {
 				gemini_model?: string;
 				persona_type?: string;
 				conversation_id?: string;
-				lan_warnings?: string[];
 			}>("frappe_ai_core.api.session.get_session_token", params);
 			setToken(msg.token);
 			setServerUrl(msg.livekit_url);
@@ -163,9 +165,6 @@ export default function App() {
 			setGeminiModelId(typeof msg.gemini_model === "string" ? msg.gemini_model : null);
 			setPersonaType(typeof msg.persona_type === "string" ? msg.persona_type : null);
 			setConversationId(typeof msg.conversation_id === "string" ? msg.conversation_id : null);
-			if (Array.isArray(msg.lan_warnings) && msg.lan_warnings.length > 0) {
-				setLanWarning(msg.lan_warnings.join(" "));
-			}
 		} catch (e) {
 			setError(e instanceof Error ? e.message : String(e));
 		} finally {
@@ -196,8 +195,9 @@ export default function App() {
 			<PortalGate path={fullPath}>
 				<SessionReview
 					sessionName={reviewSession || reviewSessionFromUrl!}
-					backHref="/support"
-					backLabel="← Back to support"
+					backHref={isInterviewPortal ? "/interview" : "/support"}
+					backLabel={isInterviewPortal ? "← Back to interviews" : "← Back to support"}
+					heading={isInterviewPortal ? "Your interview feedback" : "Call summary"}
 				/>
 			</PortalGate>
 		);
@@ -213,14 +213,15 @@ export default function App() {
 
 	if (token && serverUrl && roomName) {
 		if (!canAccessMicrophone()) {
+			const BlockShell = isInterviewPortal ? InterviewAppShell : SupportAppShell;
 			return (
-				<SupportAppShell>
+				<BlockShell>
 					<div className="flex flex-1 items-center justify-center p-6">
 						<p className="text-red-200 text-center max-w-md leading-relaxed">
 							{mediaBlock || getMicrophoneBlockMessage()}
 						</p>
 					</div>
-				</SupportAppShell>
+				</BlockShell>
 			);
 		}
 		if (personaType === "Business Analyst") {
@@ -238,22 +239,15 @@ export default function App() {
 		}
 		const activeMeta = templates.find((t) => t.name === selectedTemplateName);
 		return (
-			<>
-				{lanWarning ? (
-					<div className="fixed top-0 left-0 right-0 z-50 px-4 py-2.5 bg-amber-950 border-b border-amber-800 text-amber-200 text-sm">
-						{lanWarning}
-					</div>
-				) : null}
-				<VoiceRoom
-					token={token}
-					serverUrl={serverUrl}
-					roomName={roomName}
-					isSupportPortal={isSupportPortal}
-					assistantName={activeMeta?.agent_name || "Sewa"}
-					onLeave={() => finishCall(isSupportPortal ? roomName : null)}
-					showAnalyticsPanel={false}
-				/>
-			</>
+			<VoiceRoom
+				token={token}
+				serverUrl={serverUrl}
+				roomName={roomName}
+				variant={isInterviewPortal ? "interview" : isSupportPortal ? "support" : "plain"}
+				assistantName={activeMeta?.agent_name || (isInterviewPortal ? "Interviewer" : "Sewa")}
+				onLeave={() => finishCall(isSupportPortal || isInterviewPortal ? roomName : null)}
+				showAnalyticsPanel={false}
+			/>
 		);
 	}
 
@@ -261,6 +255,103 @@ export default function App() {
 	const selectedMeta = templates.find((t) => t.name === selectedTemplateName);
 	const startDisabled = loading || selectDisabled || !selectedTemplateName;
 	const supportName = selectedMeta?.agent_name || "Sewa";
+
+	if (isInterviewPortal) {
+		const roles = templates.filter((t) => t.persona_type === "Interviewer");
+		const canBegin = !loading && !templatesLoading && Boolean(selectedTemplateName);
+		return (
+			<PortalGate path={fullPath}>
+				<InterviewAppShell>
+					<div className="flex flex-1 flex-col items-center px-6 pb-10 pt-6">
+						<div className="w-full max-w-md">
+							<h1 className="text-[1.55rem] font-semibold leading-tight text-slate-50">
+								Ready to practice?
+							</h1>
+							<p className="mt-2 text-sm leading-relaxed text-slate-400">
+								Pick a role, talk through a real interview, and get your feedback the moment you finish.
+							</p>
+
+							{templatesError ? <p className="mt-5 text-sm text-red-300">{templatesError}</p> : null}
+							{mediaBlock ? (
+								<p className="mt-5 text-sm leading-relaxed text-amber-200">{mediaBlock}</p>
+							) : null}
+
+							<div className="mt-7 space-y-3" role="radiogroup" aria-label="Interview role">
+								{templatesLoading ? (
+									<div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 text-sm text-slate-400">
+										Loading roles…
+									</div>
+								) : roles.length === 0 ? (
+									<div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5 text-sm text-slate-400">
+										No interviews are available right now — please check back soon.
+									</div>
+								) : (
+									roles.map((r) => {
+										const selected = r.name === selectedTemplateName;
+										return (
+											<button
+												key={r.name}
+												type="button"
+												role="radio"
+												aria-checked={selected}
+												onClick={() => onSelectTemplate(r.name)}
+												className={`flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all ${
+													selected
+														? "border-indigo-400/60 bg-indigo-500/10"
+														: "border-white/[0.07] bg-white/[0.03] hover:border-white/20"
+												}`}
+											>
+												<span
+													className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-semibold ${
+														selected ? "bg-indigo-500/25 text-indigo-200" : "bg-white/[0.06] text-slate-300"
+													}`}
+												>
+													{(r.agent_name || "?").charAt(0).toUpperCase()}
+												</span>
+												<span className="min-w-0 flex-1">
+													<span className="block truncate font-medium text-slate-100">{r.agent_name}</span>
+													{r.language_mode ? (
+														<span className="mt-0.5 block text-xs text-slate-400">{r.language_mode}</span>
+													) : null}
+												</span>
+												<span
+													className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+														selected ? "border-indigo-400 bg-indigo-500" : "border-slate-600"
+													}`}
+												>
+													{selected ? (
+														<svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+															<polyline points="20 6 9 17 4 12" />
+														</svg>
+													) : null}
+												</span>
+											</button>
+										);
+									})
+								)}
+							</div>
+
+							{roles.length > 0 ? (
+								<Button
+									variant="interview"
+									size="lg"
+									className="mt-8"
+									disabled={!canBegin}
+									onClick={() => void start()}
+								>
+									{loading ? "Connecting…" : "Begin interview"}
+								</Button>
+							) : null}
+							{error ? <p className="mt-4 text-center text-sm text-red-300">{error}</p> : null}
+							<p className="mt-8 text-center text-xs leading-relaxed text-slate-500">
+								Voice only · Takes 10–15 minutes · You'll see your evaluation right after
+							</p>
+						</div>
+					</div>
+				</InterviewAppShell>
+			</PortalGate>
+		);
+	}
 
 	if (isSupportPortal) {
 		return (

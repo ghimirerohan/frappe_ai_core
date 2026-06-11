@@ -36,6 +36,9 @@ website_route_rules = [
 	{"from_route": "/support/agent", "to_route": "ai-room"},
 	{"from_route": "/support/<path:app_path>", "to_route": "ai-room"},
 	{"from_route": "/support", "to_route": "ai-room"},
+	# Interview practice portal (pick a role, voice interview, instant evaluation). Same SPA.
+	{"from_route": "/interview/<path:app_path>", "to_route": "ai-room"},
+	{"from_route": "/interview", "to_route": "ai-room"},
 ]
 
 # Includes in <head>

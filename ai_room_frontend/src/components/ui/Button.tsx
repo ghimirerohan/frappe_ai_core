@@ -8,6 +8,7 @@ const buttonVariants = cva(
 			variant: {
 				primary: "bg-emerald-500 text-emerald-950 hover:bg-emerald-400 focus-visible:ring-emerald-500",
 				agent: "bg-blue-600 text-white hover:bg-blue-500 focus-visible:ring-blue-500",
+				interview: "bg-indigo-500 text-white hover:bg-indigo-400 focus-visible:ring-indigo-500",
 				danger: "bg-red-500 text-white hover:bg-red-400 focus-visible:ring-red-500",
 				ghost: "border border-white/10 bg-transparent text-slate-300 hover:bg-white/5 focus-visible:ring-slate-500",
 			},

@@ -11,14 +11,17 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
 import CallControlBar from "@/components/CallControlBar";
+import { InterviewAppShell } from "@/components/layout/InterviewAppShell";
 import { SupportAppShell } from "@/components/layout/SupportAppShell";
 import { useCallTimer } from "@/hooks/useCallTimer";
 import { cn, formatDuration } from "@/lib/utils";
 import ChatPanel from "./ChatPanel";
+import LiveCaptions from "./LiveCaptions";
 import LiveVoiceModelSubscriber from "./LiveVoiceModelSubscriber";
 import StatusIndicator from "./StatusIndicator";
 
 type CallPhase = "ai_active" | "handoff_pending" | "human_live";
+export type VoiceRoomVariant = "support" | "interview" | "plain";
 
 function PhasePill({ phase, agentName }: { phase: CallPhase; agentName: string }) {
 	if (phase === "ai_active") return null;
@@ -127,7 +130,8 @@ export default function VoiceRoom({
 	serverUrl,
 	roomName,
 	showAnalyticsPanel = false,
-	isSupportPortal = true,
+	isSupportPortal,
+	variant,
 	assistantName = "Sewa",
 	onLeave,
 }: {
@@ -138,7 +142,9 @@ export default function VoiceRoom({
 	geminiModelLabel?: string;
 	geminiModelId?: string;
 	showAnalyticsPanel?: boolean;
+	/** @deprecated Use `variant` instead; kept for API compat */
 	isSupportPortal?: boolean;
+	variant?: VoiceRoomVariant;
 	assistantName?: string;
 	onLeave: () => void;
 }) {
@@ -167,11 +173,15 @@ export default function VoiceRoom({
 		setAgentName("");
 	}, [token, roomName]);
 
-	const Shell = isSupportPortal
-		? SupportAppShell
-		: ({ children }: { children: React.ReactNode }) => (
-				<div className="min-h-dvh flex flex-col bg-slate-950 text-slate-100 p-4">{children}</div>
-			);
+	const resolvedVariant: VoiceRoomVariant = variant ?? (isSupportPortal === false ? "plain" : "support");
+	const Shell =
+		resolvedVariant === "support"
+			? SupportAppShell
+			: resolvedVariant === "interview"
+				? InterviewAppShell
+				: ({ children }: { children: React.ReactNode }) => (
+						<div className="min-h-dvh flex flex-col bg-slate-950 text-slate-100 p-4">{children}</div>
+					);
 
 	return (
 		<Shell>
@@ -217,6 +227,11 @@ export default function VoiceRoom({
 						/>
 						{showAnalyticsPanel ? <ChatPanel /> : null}
 					</div>
+					{!showAnalyticsPanel && phase !== "human_live" ? (
+						<div className="pb-1">
+							<LiveCaptions speakerName={assistantName} />
+						</div>
+					) : null}
 					<div className="pb-safe">
 						<CallControlBar />
 					</div>

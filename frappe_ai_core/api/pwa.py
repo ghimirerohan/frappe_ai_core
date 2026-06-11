@@ -52,16 +52,33 @@ _MANIFEST_AGENT = {
 	],
 }
 
+_MANIFEST_INTERVIEW = {
+	"name": "Interview Practice",
+	"short_name": "Interview",
+	"description": "Practice voice interviews with an AI interviewer and get instant feedback.",
+	"start_url": "/interview",
+	"scope": _SCOPE,
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "#0f172a",
+	"theme_color": "#312e81",
+	"icons": [
+		{"src": _ICON, "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+		{"src": _ICON, "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"},
+	],
+}
+
 _SERVICE_WORKER = """// AI Voice Room service worker (served by frappe_ai_core.api.pwa.service_worker)
-const CACHE = 'ai-voice-room-v4';
-const SHELL = ['/support', '/support/agent', '/ai-room'];
-const APP_ROUTES = ['/support', '/ai-room', '/ai_room'];
+const CACHE = 'ai-voice-room-v5';
+const SHELL = ['/support', '/support/agent', '/interview', '/ai-room'];
+const APP_ROUTES = ['/support', '/interview', '/ai-room', '/ai_room'];
 
 function isAppRoute(pathname) {
   return APP_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
 }
 function shellFor(pathname) {
   if (pathname.startsWith('/support/agent')) return '/support/agent';
+  if (pathname.startsWith('/interview')) return '/interview';
   if (pathname.startsWith('/ai-room') || pathname.startsWith('/ai_room')) return '/ai-room';
   return '/support';
 }
@@ -141,6 +158,13 @@ def manifest() -> Response:
 @frappe.whitelist(allow_guest=True)
 def manifest_agent() -> Response:
 	resp = Response(json.dumps(_MANIFEST_AGENT), content_type="application/manifest+json")
+	resp.headers["Cache-Control"] = "public, max-age=3600"
+	return resp
+
+
+@frappe.whitelist(allow_guest=True)
+def manifest_interview() -> Response:
+	resp = Response(json.dumps(_MANIFEST_INTERVIEW), content_type="application/manifest+json")
 	resp.headers["Cache-Control"] = "public, max-age=3600"
 	return resp
 

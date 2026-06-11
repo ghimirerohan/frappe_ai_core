@@ -1,4 +1,4 @@
-export type PortalMode = "customer" | "agent" | "manager" | "generic";
+export type PortalMode = "customer" | "agent" | "manager" | "interview" | "generic";
 
 export type PortalBoot = {
 	user: string;
@@ -27,6 +27,7 @@ export function inferPortalMode(): PortalMode {
 	const path = window.location.pathname.replace(/\/+$/, "");
 	if (path === "/support/agent" || path.endsWith("/agent")) return "agent";
 	if (path === "/support/reviews" || path.includes("/cost")) return "manager";
+	if (path === "/interview" || path.startsWith("/interview/")) return "interview";
 	if (path === "/support" || path.startsWith("/support/")) return "customer";
 	return "generic";
 }
@@ -74,7 +75,12 @@ export function checkRouteAccess(path: string): AuthCheckResult {
 		return { ok: true };
 	}
 
-	if (normalized === "/support" || normalized.startsWith("/support")) {
+	if (
+		normalized === "/support" ||
+		normalized.startsWith("/support") ||
+		normalized === "/interview" ||
+		normalized.startsWith("/interview")
+	) {
 		if (boot.is_guest) return { ok: false, reason: "guest", message: "Login required" };
 		return { ok: true };
 	}

@@ -14,13 +14,15 @@ def _portal_mode(path: str) -> str:
 		return "agent"
 	if path in ("/support/reviews",) or "/cost" in path:
 		return "manager"
+	if path == "/interview" or path.startswith("/interview/"):
+		return "interview"
 	if path == "/support" or path.startswith("/support/"):
 		return "customer"
 	return "generic"
 
 
 def _guest_redirect_paths() -> set[str]:
-	return {"/support", "/support/agent", "/support/reviews"}
+	return {"/support", "/support/agent", "/support/reviews", "/interview"}
 
 
 def apply_portal_context(context) -> None:
@@ -51,6 +53,10 @@ def apply_portal_context(context) -> None:
 		context.pwa_manifest_url = "/api/method/frappe_ai_core.api.pwa.manifest_agent"
 		context.pwa_app_title = "eSewa Agent"
 		context.theme_color = "#1e3a5f"
+	elif mode == "interview":
+		context.pwa_manifest_url = "/api/method/frappe_ai_core.api.pwa.manifest_interview"
+		context.pwa_app_title = "Interview Practice"
+		context.theme_color = "#312e81"
 	else:
 		context.pwa_manifest_url = "/api/method/frappe_ai_core.api.pwa.manifest"
 		context.pwa_app_title = "eSewa Support"
