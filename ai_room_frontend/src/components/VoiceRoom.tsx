@@ -3,7 +3,6 @@ import {
 	RoomAudioRenderer,
 	useDataChannel,
 	useRemoteParticipants,
-	useRoomContext,
 	useTracks,
 	useVoiceAssistant,
 } from "@livekit/components-react";
@@ -11,58 +10,47 @@ import { Track } from "livekit-client";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
+import CallControlBar from "@/components/CallControlBar";
 import { SupportAppShell } from "@/components/layout/SupportAppShell";
-import { Button } from "@/components/ui/Button";
+import { useCallTimer } from "@/hooks/useCallTimer";
+import { cn, formatDuration } from "@/lib/utils";
 import ChatPanel from "./ChatPanel";
 import LiveVoiceModelSubscriber from "./LiveVoiceModelSubscriber";
 import StatusIndicator from "./StatusIndicator";
 
 type CallPhase = "ai_active" | "handoff_pending" | "human_live";
 
-function EndSessionButton() {
-	const room = useRoomContext();
-	return (
-		<Button variant="danger" size="md" onClick={() => room.disconnect()}>
-			End call
-		</Button>
-	);
-}
-
-function HandoffBanner({
-	phase,
-	agentName,
-}: {
-	phase: CallPhase;
-	agentName: string;
-}) {
+function PhasePill({ phase, agentName }: { phase: CallPhase; agentName: string }) {
 	if (phase === "ai_active") return null;
-
 	const isHuman = phase === "human_live";
 	return (
 		<AnimatePresence>
 			<motion.div
 				initial={{ opacity: 0, y: -8 }}
 				animate={{ opacity: 1, y: 0 }}
-				className={`mx-auto mb-4 max-w-lg rounded-xl px-4 py-3 text-center text-sm ${
-					isHuman
-						? "bg-emerald-900/50 border border-emerald-400/40 text-emerald-100"
-						: "bg-amber-900/40 border border-amber-400/40 text-amber-100"
-				}`}
+				className="flex justify-center mb-4"
 				aria-live="polite"
 			>
-				{isHuman ? (
-					<>
-						<p className="font-semibold">AI has left — you are with a human agent</p>
-						<p className="mt-1 text-xs opacity-90">
-							{agentName ? `Speaking with ${agentName}` : "A human agent is live on the call"}
-						</p>
-					</>
-				) : (
-					<>
-						<p className="font-semibold">Connecting you to a human agent…</p>
-						<p className="mt-1 text-xs opacity-80">Please hold — Sewa is transferring your call</p>
-					</>
-				)}
+				<span
+					className={cn(
+						"inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm",
+						isHuman
+							? "bg-emerald-500/15 text-emerald-200"
+							: "bg-amber-500/15 text-amber-200",
+					)}
+				>
+					<span
+						className={cn(
+							"inline-block h-2 w-2 rounded-full",
+							isHuman ? "bg-emerald-400" : "bg-amber-400 animate-pulse",
+						)}
+					/>
+					{isHuman
+						? agentName
+							? `You're with ${agentName}`
+							: "You're with a member of our team"
+						: "Connecting you to a person — please hold"}
+				</span>
 			</motion.div>
 		</AnimatePresence>
 	);
@@ -73,11 +61,13 @@ function AssistantVisualizer({
 	showAnalyticsPanel,
 	phase,
 	agentName,
+	assistantName,
 }: {
 	roomLive: boolean;
 	showAnalyticsPanel: boolean;
 	phase: CallPhase;
 	agentName: string;
+	assistantName: string;
 }) {
 	const { state: aiState, audioTrack: aiAudioTrack } = useVoiceAssistant();
 	const remotes = useRemoteParticipants();
@@ -94,27 +84,19 @@ function AssistantVisualizer({
 	const auraTrack =
 		phase === "human_live" ? (humanTrack as Parameters<typeof AgentAudioVisualizerAura>[0]["audioTrack"]) : aiAudioTrack;
 	const auraColor = phase === "human_live" ? "#22C55E" : phase === "handoff_pending" ? "#F59E0B" : "#1FD5F9";
-	const isDev = typeof import.meta !== "undefined" && (import.meta as { env?: { DEV?: boolean } }).env?.DEV;
+
+	const speakerName =
+		phase === "human_live" ? agentName || humanParticipant?.name || "Support agent" : assistantName;
 
 	const statusLabel =
 		phase === "human_live"
-			? `Speaking with ${agentName || humanParticipant?.name || "human agent"}`
+			? `On the line with ${speakerName}`
 			: phase === "handoff_pending"
-				? "Transferring to human agent…"
+				? "Hold on — bringing someone in…"
 				: undefined;
 
 	return (
 		<div className={`w-full mx-auto ${showAnalyticsPanel ? "max-w-xl" : "max-w-md"}`}>
-			{isDev && waitingForAgent ? (
-				<div className="mb-4 rounded-xl border border-indigo-400/30 bg-slate-900/70 p-4 text-left text-sm text-indigo-100">
-					<p className="font-semibold mb-2">Voice worker not joined (dev only)</p>
-					<p className="text-xs opacity-80">Start the voice agent worker in your bench container.</p>
-				</div>
-			) : waitingForAgent ? (
-				<div className="mb-4 rounded-xl border border-indigo-400/20 bg-slate-900/50 p-4 text-center text-sm text-slate-300">
-					Connecting to Sewa…
-				</div>
-			) : null}
 			<AgentAudioVisualizerAura
 				size={showAnalyticsPanel ? "sm" : "lg"}
 				state={auraState}
@@ -123,9 +105,21 @@ function AssistantVisualizer({
 				themeMode="dark"
 				style={{ borderRadius: 16, margin: "0 auto" }}
 			/>
-			<StatusIndicator state={aiState} waitingForAgent={waitingForAgent} labelOverride={statusLabel} />
+			<p className="mt-5 text-center text-lg font-medium text-slate-100">{speakerName}</p>
+			<StatusIndicator
+				state={aiState}
+				waitingForAgent={waitingForAgent}
+				labelOverride={statusLabel}
+				assistantName={assistantName}
+			/>
 		</div>
 	);
+}
+
+function CallTimer({ connected }: { connected: boolean }) {
+	const seconds = useCallTimer(connected);
+	if (!connected) return null;
+	return <span className="text-xs tabular-nums text-slate-500">{formatDuration(seconds)}</span>;
 }
 
 export default function VoiceRoom({
@@ -134,6 +128,7 @@ export default function VoiceRoom({
 	roomName,
 	showAnalyticsPanel = false,
 	isSupportPortal = true,
+	assistantName = "Sewa",
 	onLeave,
 }: {
 	token: string;
@@ -144,6 +139,7 @@ export default function VoiceRoom({
 	geminiModelId?: string;
 	showAnalyticsPanel?: boolean;
 	isSupportPortal?: boolean;
+	assistantName?: string;
 	onLeave: () => void;
 }) {
 	const [connected, setConnected] = useState(false);
@@ -171,26 +167,15 @@ export default function VoiceRoom({
 		setAgentName("");
 	}, [token, roomName]);
 
-	const shell = isSupportPortal ? SupportAppShell : ({ children }: { children: React.ReactNode }) => (
-		<div className="min-h-dvh flex flex-col bg-gradient-to-br from-slate-900 to-indigo-950 text-slate-100 p-4">
-			{children}
-		</div>
-	);
-
-	const Shell = shell;
+	const Shell = isSupportPortal
+		? SupportAppShell
+		: ({ children }: { children: React.ReactNode }) => (
+				<div className="min-h-dvh flex flex-col bg-slate-950 text-slate-100 p-4">{children}</div>
+			);
 
 	return (
 		<Shell>
-			<div className="flex flex-1 flex-col px-4 pb-6">
-				<div className="text-center py-3">
-					<p className="text-xs uppercase tracking-widest text-emerald-200/60">
-						{phase === "human_live" ? "Live with agent" : phase === "handoff_pending" ? "Handoff" : "AI support"}
-					</p>
-					<h1 className="text-base font-medium text-slate-100 mt-1">
-						{phase === "human_live" ? "Human agent call" : "Voice support session"}
-					</h1>
-				</div>
-
+			<div className="flex flex-1 flex-col px-4 pb-2">
 				<LiveKitRoom
 					token={token}
 					serverUrl={serverUrl}
@@ -208,8 +193,18 @@ export default function VoiceRoom({
 					<HandoffDataListener onMessage={handler} />
 					<LiveVoiceModelSubscriber onModel={() => {}} />
 					<RoomAudioRenderer />
-					<HandoffBanner phase={phase} agentName={agentName} />
-					<HumanJoinDetector onHumanJoin={(name) => { setPhase("human_live"); setAgentName(name); }} />
+					<HumanJoinDetector
+						onHumanJoin={(name) => {
+							setPhase("human_live");
+							setAgentName(name);
+						}}
+					/>
+					<div className="flex justify-center pt-3">
+						<CallTimer connected={connected} />
+					</div>
+					<div className="pt-2">
+						<PhasePill phase={phase} agentName={agentName} />
+					</div>
 					<div
 						className={`flex-1 flex ${showAnalyticsPanel ? "flex-col overflow-auto" : "items-center justify-center"}`}
 					>
@@ -218,11 +213,12 @@ export default function VoiceRoom({
 							showAnalyticsPanel={showAnalyticsPanel}
 							phase={phase}
 							agentName={agentName}
+							assistantName={assistantName}
 						/>
 						{showAnalyticsPanel ? <ChatPanel /> : null}
 					</div>
-					<div className="flex justify-center pt-6 pb-safe">
-						<EndSessionButton />
+					<div className="pb-safe">
+						<CallControlBar />
 					</div>
 				</LiveKitRoom>
 			</div>

@@ -53,7 +53,7 @@ _MANIFEST_AGENT = {
 }
 
 _SERVICE_WORKER = """// AI Voice Room service worker (served by frappe_ai_core.api.pwa.service_worker)
-const CACHE = 'ai-voice-room-v3';
+const CACHE = 'ai-voice-room-v4';
 const SHELL = ['/support', '/support/agent', '/ai-room'];
 const APP_ROUTES = ['/support', '/ai-room', '/ai_room'];
 
@@ -106,6 +106,27 @@ self.addEventListener('fetch', (event) => {
       }).catch(() => caches.match(shell))
     );
   }
+});
+
+// Handoff notification relay: tapping the notification focuses an open agent
+// console (and tells it which handoff to confirm) or opens a fresh one.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const url = data.url || '/support/agent';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const win of wins) {
+        try {
+          if (new URL(win.url).pathname.startsWith('/support/agent')) {
+            win.postMessage({ type: 'handoff-notification-click', handoff: data.handoff || null });
+            return win.focus();
+          }
+        } catch (e) { /* ignore */ }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
 });
 """
 

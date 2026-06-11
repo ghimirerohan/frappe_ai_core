@@ -9,7 +9,7 @@ const buttonVariants = cva(
 				primary: "bg-emerald-500 text-emerald-950 hover:bg-emerald-400 focus-visible:ring-emerald-500",
 				agent: "bg-blue-600 text-white hover:bg-blue-500 focus-visible:ring-blue-500",
 				danger: "bg-red-500 text-white hover:bg-red-400 focus-visible:ring-red-500",
-				ghost: "bg-transparent text-slate-300 hover:bg-white/5",
+				ghost: "border border-white/10 bg-transparent text-slate-300 hover:bg-white/5 focus-visible:ring-slate-500",
 			},
 			size: {
 				sm: "px-4 py-2 text-sm",

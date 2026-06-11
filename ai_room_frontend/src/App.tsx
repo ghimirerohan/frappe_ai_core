@@ -8,7 +8,6 @@ import SessionReviewList from "./components/SessionReviewList";
 import VoiceRoom from "./components/VoiceRoom";
 import { SupportAppShell } from "./components/layout/SupportAppShell";
 import { Button } from "./components/ui/Button";
-import { Card } from "./components/ui/Card";
 import { canAccessMicrophone, getMicrophoneBlockMessage } from "./lib/mediaAccess";
 import { apiGet, apiPost } from "./utils/api";
 
@@ -237,6 +236,7 @@ export default function App() {
 				/>
 			);
 		}
+		const activeMeta = templates.find((t) => t.name === selectedTemplateName);
 		return (
 			<>
 				{lanWarning ? (
@@ -249,6 +249,7 @@ export default function App() {
 					serverUrl={serverUrl}
 					roomName={roomName}
 					isSupportPortal={isSupportPortal}
+					assistantName={activeMeta?.agent_name || "Sewa"}
 					onLeave={() => finishCall(isSupportPortal ? roomName : null)}
 					showAnalyticsPanel={false}
 				/>
@@ -265,28 +266,46 @@ export default function App() {
 		return (
 			<PortalGate path={fullPath}>
 				<SupportAppShell>
-					<div className="flex flex-1 items-center justify-center p-6">
-						<Card className="w-full max-w-md text-center">
-							<p className="text-xs uppercase tracking-widest text-emerald-400/80 mb-2">eSewa customer care</p>
-							<h1 className="text-2xl font-semibold text-slate-50 mb-2">{supportName}</h1>
-							<p className="text-sm text-slate-400 leading-relaxed mb-6">
-								Voice support powered by AI. Get instant answers to common questions, or speak with a
-								human agent when you need personal assistance.
+					<div className="flex flex-1 flex-col items-center justify-center px-6 pb-10 text-center">
+						<div className="w-full max-w-sm">
+							<h1 className="text-[1.65rem] font-semibold leading-tight text-slate-50">
+								Hi — how can we help?
+							</h1>
+							<p className="mt-3 text-sm leading-relaxed text-slate-400">
+								Start a call and {supportName} will help you right away. If you'd rather talk to a
+								person, just say so — we'll bring one onto the same call.
 							</p>
-							{templatesError ? (
-								<p className="text-red-300 text-sm mb-4">{templatesError}</p>
-							) : null}
+
+							{templatesError ? <p className="mt-5 text-sm text-red-300">{templatesError}</p> : null}
 							{mediaBlock ? (
-								<p className="text-amber-200 text-sm mb-4 text-left leading-relaxed">{mediaBlock}</p>
+								<p className="mt-5 text-left text-sm leading-relaxed text-amber-200">{mediaBlock}</p>
 							) : null}
-							<Button variant="primary" size="lg" disabled={startDisabled} onClick={() => void start()}>
-								{loading ? "Connecting…" : templatesLoading ? "Loading…" : "Start support call"}
-							</Button>
-							{error ? <p className="text-red-300 text-sm mt-4">{error}</p> : null}
-							<p className="text-xs text-slate-500 mt-6">
-								Secure voice channel · Your MPIN and OTP are never requested
+
+							<button
+								type="button"
+								disabled={startDisabled}
+								onClick={() => void start()}
+								aria-label="Start support call"
+								className="group mx-auto mt-10 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/25 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 disabled:pointer-events-none disabled:opacity-40"
+							>
+								{loading || templatesLoading ? (
+									<span className="h-7 w-7 animate-spin rounded-full border-[3px] border-emerald-900/30 border-t-emerald-950" />
+								) : (
+									<svg className="h-9 w-9" viewBox="0 0 24 24" fill="currentColor">
+										<path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z" />
+									</svg>
+								)}
+							</button>
+							<p className="mt-4 text-sm font-medium text-slate-300">
+								{loading ? "Connecting…" : "Tap to call"}
 							</p>
-						</Card>
+
+							{error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
+
+							<p className="mt-10 text-xs leading-relaxed text-slate-500">
+								Free in-app call · We will never ask for your MPIN or OTP
+							</p>
+						</div>
 					</div>
 				</SupportAppShell>
 			</PortalGate>
@@ -295,13 +314,13 @@ export default function App() {
 
 	return (
 		<PortalGate path={fullPath}>
-			<div className="min-h-dvh flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-900 to-indigo-950 text-slate-100 font-sans">
-				<h1 className="text-xl font-semibold mb-2">AI Voice Room</h1>
+			<div className="min-h-dvh flex flex-col items-center justify-center p-6 bg-slate-950 text-slate-100 font-sans">
+				<h1 className="text-xl font-semibold mb-2">Voice Room</h1>
 				<p className="opacity-85 text-center max-w-md mb-4 text-sm">
-					Low-latency voice session via LiveKit and Gemini. Choose a persona, then start.
+					Choose who you'd like to talk to, then start the conversation.
 				</p>
 				<label htmlFor="ai-template-select" className="text-xs opacity-90 mb-1 self-stretch max-w-md">
-					Persona / agent template
+					Assistant
 				</label>
 				<select
 					id="ai-template-select"
@@ -325,7 +344,7 @@ export default function App() {
 				{templatesError ? <p className="text-red-300 text-sm mb-3">{templatesError}</p> : null}
 				{mediaBlock ? <p className="text-amber-200 text-sm mb-3 max-w-md">{mediaBlock}</p> : null}
 				<Button variant="agent" disabled={startDisabled} onClick={() => void start()}>
-					{loading ? "Connecting…" : "Start voice session"}
+					{loading ? "Connecting…" : "Start conversation"}
 				</Button>
 				{error ? <p className="text-red-300 text-sm mt-4">{error}</p> : null}
 			</div>

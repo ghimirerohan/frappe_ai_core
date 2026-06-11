@@ -1,37 +1,30 @@
-const LABELS: Record<string, string> = {
-	disconnected: "Disconnected",
-	connecting: "Connecting…",
-	initializing: "Initializing…",
-	listening: "AI is listening",
-	thinking: "AI is thinking",
-	speaking: "AI is speaking",
-};
-
 type Props = {
 	state: string | undefined;
 	waitingForAgent?: boolean;
 	labelOverride?: string;
+	assistantName?: string;
 };
 
-export default function StatusIndicator({ state, waitingForAgent, labelOverride }: Props) {
+/** Natural-language call status — phrased like a person, not a system. */
+export default function StatusIndicator({ state, waitingForAgent, labelOverride, assistantName = "Sewa" }: Props) {
 	if (labelOverride) {
-		return (
-			<div className="text-center text-sm font-semibold tracking-wide text-emerald-200 mt-3">
-				{labelOverride}
-			</div>
-		);
+		return <div className="mt-1.5 text-center text-sm text-emerald-200/90">{labelOverride}</div>;
 	}
 
 	const key = state ?? "connecting";
-	let label = LABELS[key] || `State: ${String(key)}`;
+	const labels: Record<string, string> = {
+		disconnected: "Call ended",
+		connecting: "Calling…",
+		initializing: "Calling…",
+		listening: "Listening",
+		thinking: "One moment…",
+		speaking: "Speaking",
+	};
+	let label = labels[key] || "On the line";
 
 	if (waitingForAgent && (key === "connecting" || key === "disconnected" || key === "initializing" || !state)) {
-		label = "Connecting to Sewa…";
+		label = `Connecting you to ${assistantName}…`;
 	}
 
-	return (
-		<div className="text-center text-sm font-semibold tracking-wide text-indigo-200 mt-3">
-			{label}
-		</div>
-	);
+	return <div className="mt-1.5 text-center text-sm text-slate-400">{label}</div>;
 }
